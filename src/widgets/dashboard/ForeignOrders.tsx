@@ -1,8 +1,9 @@
 import { ShieldAlert, TriangleAlert } from 'lucide-react'
 
+import { BybitOrderLink } from '@/entities/bybit-order/ui/BybitOrderLink'
 import type { ForeignBybitOrder } from '@/entities/foreign-order/model/types'
 import { getErrorMessage } from '@/shared/lib/errors'
-import { compactId, formatDateTime, formatRub } from '@/shared/lib/formatters'
+import { formatDateTime, formatRub } from '@/shared/lib/formatters'
 import { Badge } from '@/shared/ui/Badge'
 import { Card } from '@/shared/ui/Card'
 import { EmptyState, ErrorState, LoadingState } from '@/shared/ui/QueryState'
@@ -48,7 +49,7 @@ export function ForeignOrders({ data = [], loading, error, onRetry }: Props) {
                 <tr key={order.id} className="foreign-row">
                   <td data-label="Bybit order">
                     <div className="cell-primary">
-                      <strong className="mono">{compactId(order.bybitOrderId)}</strong>
+                      <BybitOrderLink orderId={order.bybitOrderId} compact />
                       <span>{order.bybitStatus || 'Статус неизвестен'}</span>
                     </div>
                   </td>

@@ -19,6 +19,7 @@ import { useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { toast } from 'sonner'
 
+import { BybitOrderLink } from '@/entities/bybit-order/ui/BybitOrderLink'
 import type {
   ChatMessageLog,
   EmailReceiptCheck,
@@ -31,7 +32,7 @@ import { useCancelWithdrawal } from '@/features/cancel-withdrawal/model/useCance
 import { useMarkWithdrawalSeen } from '@/features/mark-withdrawal-seen/model/useMarkWithdrawalSeen'
 import { useReleaseWithdrawal } from '@/features/release-withdrawal/model/useReleaseWithdrawal'
 import { getErrorMessage } from '@/shared/lib/errors'
-import { compactId, formatDateTime, formatPhone, formatRub } from '@/shared/lib/formatters'
+import { formatDateTime, formatPhone, formatRub } from '@/shared/lib/formatters'
 import { Badge } from '@/shared/ui/Badge'
 import { Button } from '@/shared/ui/Button'
 import { Card } from '@/shared/ui/Card'
@@ -106,7 +107,13 @@ function WithdrawalSummary({ withdrawal }: { withdrawal: Withdrawal }) {
         <DetailRow
           icon={<WalletCards size={16} />}
           label="Bybit order ID"
-          value={<span className="mono">{withdrawal.bybitOrderId || 'Не назначен'}</span>}
+          value={
+            withdrawal.bybitOrderId ? (
+              <BybitOrderLink orderId={withdrawal.bybitOrderId} />
+            ) : (
+              'Не назначен'
+            )
+          }
         />
       </div>
 
@@ -251,7 +258,7 @@ export function WithdrawalDetailsPage() {
               <WithdrawalStatusBadge status={withdrawal.status} title={withdrawal.statusTitle} />
               <span>Создана {formatDateTime(withdrawal.createdAt)}</span>
               {withdrawal.bybitOrderId && (
-                <span className="mono">Order {compactId(withdrawal.bybitOrderId)}</span>
+                <BybitOrderLink orderId={withdrawal.bybitOrderId} compact prefix="Order " />
               )}
             </div>
           </div>

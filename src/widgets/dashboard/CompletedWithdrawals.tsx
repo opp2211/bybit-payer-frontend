@@ -2,11 +2,12 @@ import { ArrowUpRight, Check, CheckCircle2, Sparkles } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { toast } from 'sonner'
 
+import { BybitOrderLink } from '@/entities/bybit-order/ui/BybitOrderLink'
 import type { Withdrawal } from '@/entities/withdrawal/model/types'
 import { OrderAmounts } from '@/entities/withdrawal/ui/OrderAmounts'
 import { useMarkWithdrawalSeen } from '@/features/mark-withdrawal-seen/model/useMarkWithdrawalSeen'
 import { getErrorMessage } from '@/shared/lib/errors'
-import { compactId, formatDateTime, formatPhone, formatRub } from '@/shared/lib/formatters'
+import { formatDateTime, formatPhone, formatRub } from '@/shared/lib/formatters'
 import { Badge } from '@/shared/ui/Badge'
 import { Button } from '@/shared/ui/Button'
 import { Card } from '@/shared/ui/Card'
@@ -86,7 +87,11 @@ export function CompletedWithdrawals({ data = [], loading, error, onRetry }: Pro
                   </td>
                   <td data-label="Bybit order">
                     <div className="cell-primary">
-                      <span className="mono">{compactId(withdrawal.bybitOrderId)}</span>
+                      {withdrawal.bybitOrderId ? (
+                        <BybitOrderLink orderId={withdrawal.bybitOrderId} compact />
+                      ) : (
+                        <span>Не назначен</span>
+                      )}
                       <OrderAmounts withdrawal={withdrawal} compact />
                     </div>
                   </td>

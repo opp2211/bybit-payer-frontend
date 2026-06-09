@@ -193,6 +193,10 @@
   white-space: nowrap;
 }
 
+.cell-primary .bybit-order-link span {
+  color: inherit;
+}
+
 .status-stack {
   display: grid;
   justify-items: start;

@@ -3,13 +3,14 @@ import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { toast } from 'sonner'
 
+import { BybitOrderLink } from '@/entities/bybit-order/ui/BybitOrderLink'
 import type { Withdrawal } from '@/entities/withdrawal/model/types'
 import { OrderAmounts } from '@/entities/withdrawal/ui/OrderAmounts'
 import { WithdrawalStatusBadge } from '@/entities/withdrawal/ui/WithdrawalStatusBadge'
 import { useCancelWithdrawal } from '@/features/cancel-withdrawal/model/useCancelWithdrawal'
 import { useReleaseWithdrawal } from '@/features/release-withdrawal/model/useReleaseWithdrawal'
 import { getErrorMessage } from '@/shared/lib/errors'
-import { compactId, formatDateTime, formatPhone, formatRub } from '@/shared/lib/formatters'
+import { formatDateTime, formatPhone, formatRub } from '@/shared/lib/formatters'
 import { Badge } from '@/shared/ui/Badge'
 import { Button } from '@/shared/ui/Button'
 import { Card } from '@/shared/ui/Card'
@@ -147,7 +148,11 @@ export function ActiveWithdrawals({ data = [], loading, error, onRetry }: Props)
                       <div className="cell-primary">
                         {withdrawal.bybitOrderId ? (
                           <>
-                            <span className="mono">Order {compactId(withdrawal.bybitOrderId)}</span>
+                            <BybitOrderLink
+                              orderId={withdrawal.bybitOrderId}
+                              compact
+                              prefix="Order "
+                            />
                             <span>{formatRub(withdrawal.bybitOrderAmountRub)}</span>
                             <OrderAmounts withdrawal={withdrawal} compact />
                           </>
