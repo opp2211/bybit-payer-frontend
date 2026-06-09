@@ -4,8 +4,4 @@ import { apiRequest } from '@/shared/api/api-client'
 export const foreignOrderApi = {
   getActive: () => apiRequest<ForeignBybitOrder[]>('/api/foreign-orders/active'),
   getDetails: (id: number) => apiRequest<ForeignBybitOrder>(`/api/foreign-orders/${id}`),
-  requestCancel: (id: number) =>
-    apiRequest<ForeignBybitOrder>(`/api/foreign-orders/${id}/cancel`, {
-      method: 'POST',
-    }),
 }

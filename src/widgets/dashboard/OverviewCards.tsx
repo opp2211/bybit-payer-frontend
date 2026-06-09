@@ -13,9 +13,7 @@ type Props = {
 
 export function OverviewCards({ active, foreignOrders, system }: Props) {
   const inWork = active.filter((item) => item.status === 'IN_WORK').length
-  const attention =
-    active.filter((item) => item.attentionRequired).length +
-    foreignOrders.filter((item) => item.attentionRequired).length
+  const attention = active.filter((item) => item.attentionRequired).length + foreignOrders.length
   const activeVolume = active.reduce((total, item) => total + item.amountRub, 0)
 
   const cards = [
