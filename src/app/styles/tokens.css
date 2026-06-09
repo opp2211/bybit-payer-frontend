@@ -1,0 +1,44 @@
+:root {
+  color-scheme: light;
+  font-family:
+    'Segoe UI Variable',
+    'Segoe UI',
+    -apple-system,
+    BlinkMacSystemFont,
+    sans-serif;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+
+  --color-bg: #f5f7fa;
+  --color-surface: #ffffff;
+  --color-surface-subtle: #f8fafc;
+  --color-surface-hover: #f1f5f9;
+  --color-text: #172033;
+  --color-text-secondary: #667085;
+  --color-text-muted: #98a2b3;
+  --color-border: #e4e9f0;
+  --color-border-strong: #d2d9e3;
+  --color-primary: #3157d5;
+  --color-primary-hover: #2648bd;
+  --color-primary-soft: #eef2ff;
+  --color-success: #138a5b;
+  --color-success-soft: #e9f8f1;
+  --color-warning: #b86a0d;
+  --color-warning-soft: #fff6e6;
+  --color-danger: #d04444;
+  --color-danger-soft: #fff0f0;
+  --color-info: #2c6fb7;
+  --color-info-soft: #edf6ff;
+  --color-dark: #101828;
+
+  --shadow-sm: 0 1px 2px rgb(16 24 40 / 4%);
+  --shadow-card: 0 8px 28px rgb(25 38 65 / 6%);
+  --shadow-dialog: 0 24px 70px rgb(15 23 42 / 22%);
+
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 20px;
+  --sidebar-width: 236px;
+  --header-height: 72px;
+}

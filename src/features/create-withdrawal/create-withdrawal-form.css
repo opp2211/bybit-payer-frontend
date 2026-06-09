@@ -1,0 +1,152 @@
+.create-form-card {
+  position: sticky;
+  top: calc(var(--header-height) + 20px);
+}
+
+.create-form {
+  display: grid;
+  gap: 17px;
+  padding: 22px;
+}
+
+.form-field {
+  display: grid;
+  gap: 7px;
+}
+
+.form-field label {
+  color: #344054;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.input-shell {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 45px;
+  padding: 0 13px;
+  border: 1px solid var(--color-border-strong);
+  border-radius: 10px;
+  background: var(--color-surface);
+  color: var(--color-text-muted);
+  transition:
+    border-color 150ms ease,
+    box-shadow 150ms ease;
+}
+
+.input-shell:focus-within {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px rgb(49 87 213 / 10%);
+}
+
+.input-shell:has([aria-invalid='true']) {
+  border-color: var(--color-danger);
+}
+
+.input-shell input,
+.input-shell select {
+  width: 100%;
+  min-width: 0;
+  height: 42px;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: var(--color-text);
+  font-weight: 550;
+}
+
+.input-shell input::placeholder {
+  color: #b0b8c5;
+  font-weight: 400;
+}
+
+.input-shell input[type='number'] {
+  appearance: textfield;
+}
+
+.input-shell input[type='number']::-webkit-inner-spin-button {
+  appearance: none;
+}
+
+.input-shell select {
+  appearance: none;
+  cursor: pointer;
+}
+
+.input-shell--select {
+  position: relative;
+}
+
+.input-shell--select::after {
+  position: absolute;
+  right: 14px;
+  width: 7px;
+  height: 7px;
+  border-right: 1.5px solid var(--color-text-secondary);
+  border-bottom: 1.5px solid var(--color-text-secondary);
+  content: '';
+  pointer-events: none;
+  transform: rotate(45deg) translateY(-3px);
+}
+
+.input-shell__suffix {
+  color: var(--color-text-muted);
+  font-size: 11px;
+  font-weight: 750;
+}
+
+.form-field__hint,
+.form-field__error {
+  font-size: 11px;
+  line-height: 1.35;
+}
+
+.form-field__hint {
+  color: var(--color-text-muted);
+}
+
+.form-field__error {
+  color: var(--color-danger);
+}
+
+.form-field__retry {
+  padding: 0;
+  background: transparent;
+  color: inherit;
+  font-weight: 700;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.form-note {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 11px 12px;
+  border-radius: 10px;
+  background: var(--color-surface-subtle);
+  color: var(--color-text-secondary);
+  font-size: 12px;
+}
+
+.form-note svg {
+  flex: 0 0 auto;
+  margin-top: 1px;
+  color: var(--color-primary);
+}
+
+.form-note strong {
+  color: var(--color-text);
+}
+
+.create-form__submit {
+  width: 100%;
+  margin-top: 1px;
+}
+
+@media (max-width: 1099px) {
+  .create-form-card {
+    position: static;
+  }
+}
