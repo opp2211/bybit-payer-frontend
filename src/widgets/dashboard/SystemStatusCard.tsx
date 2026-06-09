@@ -118,7 +118,7 @@ export function SystemStatusCard({ data, loading, error, onRetry }: Props) {
                 </strong>
               </div>
               <div>
-                <span>7-я позиция + 0,275%</span>
+                <span>7-я позиция с комиссией 0,275%</span>
                 <strong>
                   {data.referenceRate7WithFee == null
                     ? '—'

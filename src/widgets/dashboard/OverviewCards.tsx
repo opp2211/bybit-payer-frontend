@@ -49,7 +49,7 @@ export function OverviewCards({ active, foreignOrders, system }: Props) {
       meta:
         system?.availableRubBalance == null
           ? 'Курс пока не получен'
-          : `≈ ${formatRub(system.availableRubBalance)} по курсу 7-й позиции + 0,275%`,
+          : `≈ ${formatRub(system.availableRubBalance)} по курсу 7-й позиции с комиссией 0,275%`,
       icon: Wallet,
       tone: 'dark',
     },
