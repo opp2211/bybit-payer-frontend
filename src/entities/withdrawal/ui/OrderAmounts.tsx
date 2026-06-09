@@ -34,7 +34,7 @@ export function OrderAmounts({ withdrawal, compact = false }: Props) {
 
   const copy = async (label: string, value: number) => {
     try {
-      await copyToClipboard(String(value))
+      await copyToClipboard(String(value).replace('.', ','))
       toast.success(`${label} скопирована`)
     } catch {
       toast.error('Не удалось скопировать сумму')
