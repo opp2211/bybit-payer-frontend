@@ -315,6 +315,74 @@
   margin-top: 24px;
 }
 
+.order-amounts {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 16px;
+}
+
+.order-amount {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 3px 8px;
+  align-items: center;
+  padding: 10px;
+  border: 1px solid var(--color-border);
+  border-radius: 9px;
+  background: var(--color-surface-subtle);
+  color: var(--color-text);
+  text-align: left;
+  cursor: pointer;
+}
+
+.order-amount:hover {
+  border-color: var(--color-primary);
+  background: var(--color-primary-soft);
+}
+
+.order-amount span {
+  color: var(--color-text-muted);
+  font-size: 9px;
+}
+
+.order-amount strong {
+  grid-column: 1;
+  font-size: 11px;
+}
+
+.order-amount svg {
+  grid-column: 2;
+  grid-row: 1 / span 2;
+  color: var(--color-text-muted);
+}
+
+.order-amounts--compact {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 4px;
+}
+
+.order-amounts--compact .order-amount {
+  display: inline-flex;
+  gap: 4px;
+  padding: 3px 5px;
+  border-radius: 6px;
+}
+
+.order-amounts--compact .order-amount span {
+  display: none;
+}
+
+.order-amounts--compact .order-amount strong {
+  font-size: 8px;
+}
+
+.order-amounts--compact .order-amount svg {
+  width: 9px;
+}
+
 .spin-slow {
   animation: spin 2s linear infinite;
 }
@@ -338,6 +406,10 @@
 }
 
 @media (max-width: 620px) {
+  .order-amounts {
+    grid-template-columns: 1fr;
+  }
+
   .card__header {
     align-items: flex-start;
     padding: 17px;

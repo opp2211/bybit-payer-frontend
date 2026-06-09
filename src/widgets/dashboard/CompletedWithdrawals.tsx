@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { toast } from 'sonner'
 
 import type { Withdrawal } from '@/entities/withdrawal/model/types'
+import { OrderAmounts } from '@/entities/withdrawal/ui/OrderAmounts'
 import { useMarkWithdrawalSeen } from '@/features/mark-withdrawal-seen/model/useMarkWithdrawalSeen'
 import { getErrorMessage } from '@/shared/lib/errors'
 import { compactId, formatDateTime, formatPhone, formatRub } from '@/shared/lib/formatters'
@@ -84,7 +85,10 @@ export function CompletedWithdrawals({ data = [], loading, error, onRetry }: Pro
                     </div>
                   </td>
                   <td data-label="Bybit order">
-                    <span className="mono">{compactId(withdrawal.bybitOrderId)}</span>
+                    <div className="cell-primary">
+                      <span className="mono">{compactId(withdrawal.bybitOrderId)}</span>
+                      <OrderAmounts withdrawal={withdrawal} compact />
+                    </div>
                   </td>
                   <td data-label="Завершена">
                     <span className="date-cell">{formatDateTime(withdrawal.completedAt)}</span>

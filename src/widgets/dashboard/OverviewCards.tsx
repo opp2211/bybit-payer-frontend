@@ -47,9 +47,9 @@ export function OverviewCards({ active, foreignOrders, system }: Props) {
           ? '—'
           : `${formatNumber(system.availableUsdtBalance)} USDT`,
       meta:
-        system?.currentRate == null
+        system?.availableRubBalance == null
           ? 'Курс пока не получен'
-          : `Курс ${formatNumber(system.currentRate)} ₽`,
+          : `≈ ${formatRub(system.availableRubBalance)} по курсу 7-й позиции + 0,275%`,
       icon: Wallet,
       tone: 'dark',
     },

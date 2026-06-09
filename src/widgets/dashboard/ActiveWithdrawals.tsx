@@ -1,11 +1,13 @@
-import { ArrowUpRight, Ban, ListChecks, TriangleAlert } from 'lucide-react'
+import { ArrowUpRight, Ban, ListChecks, TriangleAlert, Unlock } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { toast } from 'sonner'
 
 import type { Withdrawal } from '@/entities/withdrawal/model/types'
+import { OrderAmounts } from '@/entities/withdrawal/ui/OrderAmounts'
 import { WithdrawalStatusBadge } from '@/entities/withdrawal/ui/WithdrawalStatusBadge'
 import { useCancelWithdrawal } from '@/features/cancel-withdrawal/model/useCancelWithdrawal'
+import { useReleaseWithdrawal } from '@/features/release-withdrawal/model/useReleaseWithdrawal'
 import { getErrorMessage } from '@/shared/lib/errors'
 import { compactId, formatDateTime, formatPhone, formatRub } from '@/shared/lib/formatters'
 import { Badge } from '@/shared/ui/Badge'
@@ -36,8 +38,10 @@ function getLastActivity(withdrawal: Withdrawal): string {
 }
 
 export function ActiveWithdrawals({ data = [], loading, error, onRetry }: Props) {
-  const [selected, setSelected] = useState<Withdrawal | null>(null)
+  const [selectedForCancel, setSelectedForCancel] = useState<Withdrawal | null>(null)
+  const [selectedForRelease, setSelectedForRelease] = useState<Withdrawal | null>(null)
   const cancelMutation = useCancelWithdrawal()
+  const releaseMutation = useReleaseWithdrawal()
   const withdrawals = useMemo(
     () =>
       [...data].sort(
@@ -49,14 +53,28 @@ export function ActiveWithdrawals({ data = [], loading, error, onRetry }: Props)
   )
 
   const cancelSelected = async () => {
-    if (!selected) return
+    if (!selectedForCancel) return
 
     try {
-      await cancelMutation.mutateAsync(selected.id)
-      toast.success(`Заявка #${selected.id} отменена`)
-      setSelected(null)
+      await cancelMutation.mutateAsync(selectedForCancel.id)
+      toast.success(`Заявка #${selectedForCancel.id} отменена`)
+      setSelectedForCancel(null)
     } catch (mutationError) {
       toast.error('Не удалось отменить заявку', {
+        description: getErrorMessage(mutationError),
+      })
+    }
+  }
+
+  const releaseSelected = async () => {
+    if (!selectedForRelease) return
+
+    try {
+      await releaseMutation.mutateAsync(selectedForRelease.id)
+      toast.success(`Ордер заявки #${selectedForRelease.id} отпущен`)
+      setSelectedForRelease(null)
+    } catch (mutationError) {
+      toast.error('Не удалось отпустить ордер', {
         description: getErrorMessage(mutationError),
       })
     }
@@ -131,6 +149,7 @@ export function ActiveWithdrawals({ data = [], loading, error, onRetry }: Props)
                           <>
                             <span className="mono">Order {compactId(withdrawal.bybitOrderId)}</span>
                             <span>{formatRub(withdrawal.bybitOrderAmountRub)}</span>
+                            <OrderAmounts withdrawal={withdrawal} compact />
                           </>
                         ) : withdrawal.queuePosition ? (
                           <>
@@ -155,9 +174,20 @@ export function ActiveWithdrawals({ data = [], loading, error, onRetry }: Props)
                             size="sm"
                             icon={<Ban size={15} />}
                             aria-label={`Отменить заявку ${withdrawal.id}`}
-                            onClick={() => setSelected(withdrawal)}
+                            onClick={() => setSelectedForCancel(withdrawal)}
                           >
                             <span className="action-label">Отменить</span>
+                          </Button>
+                        )}
+                        {withdrawal.canRelease && (
+                          <Button
+                            variant="danger"
+                            size="sm"
+                            icon={<Unlock size={15} />}
+                            aria-label={`Отпустить ордер заявки ${withdrawal.id}`}
+                            onClick={() => setSelectedForRelease(withdrawal)}
+                          >
+                            <span className="action-label">Отпустить ордер</span>
                           </Button>
                         )}
                         <Link
@@ -178,20 +208,36 @@ export function ActiveWithdrawals({ data = [], loading, error, onRetry }: Props)
       </Card>
 
       <ConfirmDialog
-        open={Boolean(selected)}
+        open={Boolean(selectedForCancel)}
         title="Отменить заявку?"
         description={
           <p>
-            Заявка <strong>#{selected?.id}</strong> на сумму{' '}
-            <strong>{formatRub(selected?.amountRub)}</strong> будет снята с обработки. Backend
-            повторно проверит, не появился ли по ней Bybit-ордер.
+            Заявка <strong>#{selectedForCancel?.id}</strong> на сумму{' '}
+            <strong>{formatRub(selectedForCancel?.amountRub)}</strong> будет снята с обработки.
+            Backend повторно проверит, не появился ли по ней Bybit-ордер.
           </p>
         }
         confirmLabel="Отменить заявку"
         tone="danger"
         loading={cancelMutation.isPending}
-        onClose={() => setSelected(null)}
+        onClose={() => setSelectedForCancel(null)}
         onConfirm={cancelSelected}
+      />
+
+      <ConfirmDialog
+        open={Boolean(selectedForRelease)}
+        title="Отпустить ордер?"
+        description={
+          <p>
+            Система не смогла проверить оплату по чеку с почты. Вы уверены, что хотите отпустить
+            ордер? Это означает, что контрагент получит USDT.
+          </p>
+        }
+        confirmLabel="Отпустить ордер"
+        tone="danger"
+        loading={releaseMutation.isPending}
+        onClose={() => setSelectedForRelease(null)}
+        onConfirm={releaseSelected}
       />
     </>
   )

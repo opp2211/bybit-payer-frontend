@@ -200,14 +200,19 @@ export function CreateWithdrawalForm() {
 
         <div className="form-note">
           <Info size={16} />
-          <span>
-            Доступный баланс:{' '}
-            <strong>
-              {status?.availableUsdtBalance == null
-                ? '—'
-                : `${formatNumber(status.availableUsdtBalance)} USDT`}
-            </strong>
-          </span>
+          <div>
+            <span>
+              Доступный баланс:{' '}
+              <strong>
+                {status?.availableUsdtBalance == null
+                  ? '—'
+                  : `${formatNumber(status.availableUsdtBalance)} USDT`}
+              </strong>
+            </span>
+            <span>
+              В рублях: <strong>{formatRub(status?.availableRubBalance)}</strong>
+            </span>
+          </div>
         </div>
 
         <Button

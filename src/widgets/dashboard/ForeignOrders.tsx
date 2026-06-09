@@ -1,9 +1,12 @@
-import { ShieldAlert, TriangleAlert } from 'lucide-react'
+import { RefreshCw, ShieldAlert, TriangleAlert } from 'lucide-react'
+import { toast } from 'sonner'
 
 import type { ForeignBybitOrder } from '@/entities/foreign-order/model/types'
+import { useCancelForeignOrder } from '@/features/cancel-foreign-order/model/useCancelForeignOrder'
 import { getErrorMessage } from '@/shared/lib/errors'
 import { compactId, formatDateTime, formatRub } from '@/shared/lib/formatters'
 import { Badge } from '@/shared/ui/Badge'
+import { Button } from '@/shared/ui/Button'
 import { Card } from '@/shared/ui/Card'
 import { EmptyState, ErrorState, LoadingState } from '@/shared/ui/QueryState'
 
@@ -15,6 +18,19 @@ type Props = {
 }
 
 export function ForeignOrders({ data = [], loading, error, onRetry }: Props) {
+  const cancelMutation = useCancelForeignOrder()
+
+  const requestCancel = async (order: ForeignBybitOrder) => {
+    try {
+      await cancelMutation.mutateAsync(order.id)
+      toast.success(`Запрос отмены ордера ${compactId(order.bybitOrderId)} отправлен`)
+    } catch (mutationError) {
+      toast.error('Не удалось запросить отмену чужого ордера', {
+        description: getErrorMessage(mutationError),
+      })
+    }
+  }
+
   return (
     <Card
       title="Чужие ордера"
@@ -69,6 +85,15 @@ export function ForeignOrders({ data = [], loading, error, onRetry }: Props) {
                         {order.cancelRequested ? 'Запрошена' : 'Не запрошена'}
                       </Badge>
                       <span>Попыток: {order.cancelRequestAttempts}</span>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        icon={<RefreshCw size={13} />}
+                        loading={cancelMutation.isPending && cancelMutation.variables === order.id}
+                        onClick={() => requestCancel(order)}
+                      >
+                        Запросить отмену
+                      </Button>
                     </div>
                   </td>
                   <td data-label="Обновлено">

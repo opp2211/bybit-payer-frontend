@@ -140,6 +140,15 @@
   color: var(--color-text);
 }
 
+.form-note > div {
+  display: grid;
+  gap: 3px;
+}
+
+.form-note > div > span {
+  display: block;
+}
+
 .create-form__submit {
   width: 100%;
   margin-top: 1px;

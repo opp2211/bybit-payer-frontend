@@ -25,6 +25,9 @@ export type Withdrawal = {
   queuePosition: number | null
   bybitOrderId: string | null
   bybitOrderAmountRub: number | null
+  bybitOrderQuantityUsdt: number | null
+  bybitOrderFeeUsdt: number | null
+  bybitOrderTotalUsdt: number | null
   createdAt: string
   queuedAt: string | null
   publishedAt: string | null
@@ -37,6 +40,7 @@ export type Withdrawal = {
   lastError: string | null
   lastWarning: string | null
   canCancel: boolean
+  canRelease: boolean
 }
 
 export type WithdrawalEvent = {

@@ -104,9 +104,25 @@ export function SystemStatusCard({ data, loading, error, onRetry }: Props) {
             </div>
             <div className="system-stats">
               <div>
-                <span>Курс</span>
+                <span>Курс объявления</span>
                 <strong>
-                  {data.currentRate == null ? '—' : `${formatNumber(data.currentRate)} ₽`}
+                  {data.currentRate == null
+                    ? '—'
+                    : `${formatNumber(data.currentRate)} ₽ · позиция #${data.currentRateSourcePosition ?? '—'}`}
+                </strong>
+              </div>
+              <div>
+                <span>Курс 7-й позиции</span>
+                <strong>
+                  {data.referenceRate7 == null ? '—' : `${formatNumber(data.referenceRate7)} ₽`}
+                </strong>
+              </div>
+              <div>
+                <span>7-я позиция + 0,275%</span>
+                <strong>
+                  {data.referenceRate7WithFee == null
+                    ? '—'
+                    : `${formatNumber(data.referenceRate7WithFee)} ₽`}
                 </strong>
               </div>
               <div>
@@ -120,8 +136,12 @@ export function SystemStatusCard({ data, loading, error, onRetry }: Props) {
                 <strong>{formatNumber(data.currentQuantityUsdt)} USDT</strong>
               </div>
               <div>
-                <span>Баланс</span>
+                <span>Баланс USDT</span>
                 <strong>{formatNumber(data.availableUsdtBalance)} USDT</strong>
+              </div>
+              <div>
+                <span>Баланс RUB по курсу с комиссией</span>
+                <strong>{formatRub(data.availableRubBalance)}</strong>
               </div>
             </div>
             <div className="system-description">

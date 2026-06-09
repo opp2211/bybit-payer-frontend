@@ -11,6 +11,7 @@ import {
   Phone,
   ReceiptText,
   TriangleAlert,
+  Unlock,
   UserRound,
   WalletCards,
 } from 'lucide-react'
@@ -25,8 +26,10 @@ import type {
 } from '@/entities/withdrawal/model/types'
 import { useWithdrawalDetailsQuery } from '@/entities/withdrawal/model/queries'
 import { WithdrawalStatusBadge } from '@/entities/withdrawal/ui/WithdrawalStatusBadge'
+import { OrderAmounts } from '@/entities/withdrawal/ui/OrderAmounts'
 import { useCancelWithdrawal } from '@/features/cancel-withdrawal/model/useCancelWithdrawal'
 import { useMarkWithdrawalSeen } from '@/features/mark-withdrawal-seen/model/useMarkWithdrawalSeen'
+import { useReleaseWithdrawal } from '@/features/release-withdrawal/model/useReleaseWithdrawal'
 import { getErrorMessage } from '@/shared/lib/errors'
 import { compactId, formatDateTime, formatPhone, formatRub } from '@/shared/lib/formatters'
 import { Badge } from '@/shared/ui/Badge'
@@ -107,6 +110,8 @@ function WithdrawalSummary({ withdrawal }: { withdrawal: Withdrawal }) {
         />
       </div>
 
+      <OrderAmounts withdrawal={withdrawal} />
+
       <div className="details-meta">
         <div>
           <span>Создана</span>
@@ -152,7 +157,9 @@ export function WithdrawalDetailsPage() {
   const detailsQuery = useWithdrawalDetailsQuery(withdrawalId)
   const cancelMutation = useCancelWithdrawal()
   const markSeenMutation = useMarkWithdrawalSeen()
+  const releaseMutation = useReleaseWithdrawal()
   const [confirmOpen, setConfirmOpen] = useState(false)
+  const [releaseConfirmOpen, setReleaseConfirmOpen] = useState(false)
 
   if (!Number.isInteger(withdrawalId) || withdrawalId <= 0) {
     return (
@@ -211,6 +218,17 @@ export function WithdrawalDetailsPage() {
     }
   }
 
+  const release = async () => {
+    try {
+      await releaseMutation.mutateAsync(withdrawal.id)
+      toast.success(`Ордер заявки #${withdrawal.id} отпущен`)
+      setReleaseConfirmOpen(false)
+      void detailsQuery.refetch()
+    } catch (error) {
+      toast.error('Не удалось отпустить ордер', { description: getErrorMessage(error) })
+    }
+  }
+
   return (
     <>
       <div className="page withdrawal-details-page">
@@ -256,6 +274,15 @@ export function WithdrawalDetailsPage() {
                 onClick={() => setConfirmOpen(true)}
               >
                 Отменить заявку
+              </Button>
+            )}
+            {withdrawal.canRelease && (
+              <Button
+                variant="danger"
+                icon={<Unlock size={16} />}
+                onClick={() => setReleaseConfirmOpen(true)}
+              >
+                Отпустить ордер
               </Button>
             )}
           </div>
@@ -413,6 +440,22 @@ export function WithdrawalDetailsPage() {
         loading={cancelMutation.isPending}
         onClose={() => setConfirmOpen(false)}
         onConfirm={cancel}
+      />
+
+      <ConfirmDialog
+        open={releaseConfirmOpen}
+        title="Отпустить ордер?"
+        description={
+          <p>
+            Система не смогла проверить оплату по чеку с почты. Вы уверены, что хотите отпустить
+            ордер? Это означает, что контрагент получит USDT.
+          </p>
+        }
+        confirmLabel="Отпустить ордер"
+        tone="danger"
+        loading={releaseMutation.isPending}
+        onClose={() => setReleaseConfirmOpen(false)}
+        onConfirm={release}
       />
     </>
   )

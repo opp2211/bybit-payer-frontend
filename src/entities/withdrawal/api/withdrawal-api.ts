@@ -22,4 +22,8 @@ export const withdrawalApi = {
     apiRequest<Withdrawal>(`/api/withdrawals/${id}/mark-seen`, {
       method: 'POST',
     }),
+  release: (id: number) =>
+    apiRequest<Withdrawal>(`/api/withdrawals/${id}/release`, {
+      method: 'POST',
+    }),
 }
