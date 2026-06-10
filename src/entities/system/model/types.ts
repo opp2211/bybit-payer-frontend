@@ -8,6 +8,7 @@ export type SystemStatus = {
   currentRateSourcePosition: number | null
   referenceRate7: number | null
   referenceRate7WithFee: number | null
+  referenceRate15: number | null
   currentMinRub: number | null
   currentMaxRub: number | null
   currentQuantityUsdt: number | null

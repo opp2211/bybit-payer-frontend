@@ -1,75 +1,91 @@
-import { AlertTriangle, ArrowUpRight, Banknote, CircleDotDashed, Wallet } from 'lucide-react'
+import { CircleDollarSign, Megaphone, Wallet } from 'lucide-react'
 
-import type { ForeignBybitOrder } from '@/entities/foreign-order/model/types'
 import type { SystemStatus } from '@/entities/system/model/types'
-import type { Withdrawal } from '@/entities/withdrawal/model/types'
-import { formatNumber, formatRub } from '@/shared/lib/formatters'
+import { compactId, formatNumber, formatRub } from '@/shared/lib/formatters'
+import { Badge } from '@/shared/ui/Badge'
 
 type Props = {
-  active: Withdrawal[]
-  foreignOrders: ForeignBybitOrder[]
   system?: SystemStatus
 }
 
-export function OverviewCards({ active, foreignOrders, system }: Props) {
-  const inWork = active.filter((item) => item.status === 'IN_WORK').length
-  const attention = active.filter((item) => item.attentionRequired).length + foreignOrders.length
-  const activeVolume = active.reduce((total, item) => total + item.amountRub, 0)
-
-  const cards = [
-    {
-      label: 'Активные заявки',
-      value: String(active.length),
-      meta: `${formatRub(activeVolume)} в обработке`,
-      icon: CircleDotDashed,
-      tone: 'primary',
-    },
-    {
-      label: 'Опубликовано',
-      value: String(inWork),
-      meta: system?.adPublished ? 'Объявление активно' : 'Объявление не активно',
-      icon: ArrowUpRight,
-      tone: 'info',
-    },
-    {
-      label: 'Требует внимания',
-      value: String(attention),
-      meta: attention ? 'Нужна проверка оператора' : 'Критичных событий нет',
-      icon: AlertTriangle,
-      tone: attention ? 'warning' : 'success',
-    },
-    {
-      label: 'Доступный баланс',
-      value:
-        system?.availableUsdtBalance == null
-          ? '—'
-          : `${formatNumber(system.availableUsdtBalance)} USDT`,
-      meta:
-        system?.availableRubBalance == null
-          ? 'Курс пока не получен'
-          : `≈ ${formatRub(system.availableRubBalance)} по курсу 7-й позиции с комиссией 0,275%`,
-      icon: Wallet,
-      tone: 'dark',
-    },
-  ]
-
+export function OverviewCards({ system }: Props) {
   return (
-    <div className="overview-grid">
-      {cards.map(({ label, value, meta, icon: Icon, tone }) => (
-        <article className={`metric-card metric-card--${tone}`} key={label}>
-          <div className="metric-card__top">
-            <span>{label}</span>
-            <span className="metric-card__icon">
-              <Icon size={18} />
-            </span>
+    <section className="market-overview" aria-label="Баланс и объявление Bybit">
+      <article className="balance-overview">
+        <div className="market-overview__heading">
+          <span className="market-overview__icon">
+            <Wallet size={19} />
+          </span>
+          <span>Доступный баланс</span>
+        </div>
+        <strong className="balance-overview__usdt">
+          {system?.availableUsdtBalance == null
+            ? '—'
+            : `${formatNumber(system.availableUsdtBalance)} USDT`}
+        </strong>
+        <div className="balance-overview__stats">
+          <div>
+            <span>В рублях</span>
+            <strong>{formatRub(system?.availableRubBalance)}</strong>
           </div>
-          <strong>{value}</strong>
-          <small>
-            {label === 'Активные заявки' && <Banknote size={12} />}
-            {meta}
-          </small>
-        </article>
-      ))}
-    </div>
+          <div>
+            <span>Курс 7-й позиции</span>
+            <strong>
+              {system?.referenceRate7 == null ? '—' : `${formatNumber(system.referenceRate7)} ₽`}
+            </strong>
+          </div>
+          <div>
+            <span>Курс 15-й позиции</span>
+            <strong>
+              {system?.referenceRate15 == null ? '—' : `${formatNumber(system.referenceRate15)} ₽`}
+            </strong>
+          </div>
+        </div>
+      </article>
+
+      <article className="ad-overview">
+        <div className="ad-overview__top">
+          <div className="market-overview__heading">
+            <span className="market-overview__icon">
+              <Megaphone size={19} />
+            </span>
+            <div>
+              <span>Объявление Bybit</span>
+              <small className="mono">{compactId(system?.bybitAdId)}</small>
+            </div>
+          </div>
+          <Badge tone={system?.adPublished ? 'success' : 'neutral'}>
+            {system?.adPublished ? 'Опубликовано' : 'Не опубликовано'}
+          </Badge>
+        </div>
+        <div className="ad-overview__stats">
+          <div>
+            <span>Текущий курс</span>
+            <strong>
+              {system?.currentRate == null ? '—' : `${formatNumber(system.currentRate)} ₽`}
+            </strong>
+            <small>позиция {system?.currentRateSourcePosition ?? '—'}</small>
+          </div>
+          <div>
+            <span>Диапазон</span>
+            <strong>
+              {formatRub(system?.currentMinRub)} — {formatRub(system?.currentMaxRub)}
+            </strong>
+          </div>
+          <div>
+            <span>Объём</span>
+            <strong>
+              {system?.currentQuantityUsdt == null
+                ? '—'
+                : `${formatNumber(system.currentQuantityUsdt)} USDT`}
+            </strong>
+          </div>
+        </div>
+        <p>
+          <CircleDollarSign size={14} />
+          {system?.currentDescription || 'Описание объявления пока не сформировано'}
+        </p>
+      </article>
+    </section>
   )
 }

@@ -52,12 +52,15 @@ export type WithdrawalEvent = {
 }
 
 export type ChatMessageLog = {
-  id: number
+  id: string
   bybitOrderId: string
-  messageIndex: number
+  messageIndex: number | null
   messageText: string
+  direction: 'OUTGOING' | 'INCOMING' | 'SYSTEM'
+  authorName: string
+  contentType: string
   status: 'PENDING' | 'SENT' | 'FAILED'
-  sentAt: string | null
+  createdAt: string | null
   error: string | null
 }
 
@@ -69,6 +72,7 @@ export type EmailReceiptCheck = {
   emailSubject: string | null
   emailReceivedAt: string | null
   pdfFilename: string | null
+  pdfAvailable: boolean
   parsedStatus: string | null
   parsedAmountRub: number | null
   parsedRecipientPhone: string | null
@@ -94,4 +98,8 @@ export type CreateWithdrawalRequest = {
   recipientPhone: string
   recipientBank: RecipientBank
   recipientName: string
+}
+
+export type SendChatMessageRequest = {
+  message: string
 }

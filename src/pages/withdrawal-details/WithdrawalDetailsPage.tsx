@@ -5,49 +5,78 @@ import {
   CheckCircle2,
   CircleDot,
   FileCheck2,
+  FileText,
   Landmark,
   Mail,
   MessageSquareText,
   Phone,
   ReceiptText,
+  Send,
   TriangleAlert,
   Unlock,
   UserRound,
   WalletCards,
+  X,
 } from 'lucide-react'
-import { useState } from 'react'
+import { useEffect, useRef, useState, type FormEvent, type ReactNode } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { toast } from 'sonner'
 
 import { BybitOrderLink } from '@/entities/bybit-order/ui/BybitOrderLink'
+import { withdrawalApi } from '@/entities/withdrawal/api/withdrawal-api'
 import type {
-  ChatMessageLog,
   EmailReceiptCheck,
   Withdrawal,
+  WithdrawalEvent,
 } from '@/entities/withdrawal/model/types'
 import { useWithdrawalDetailsQuery } from '@/entities/withdrawal/model/queries'
-import { WithdrawalStatusBadge } from '@/entities/withdrawal/ui/WithdrawalStatusBadge'
 import { OrderAmounts } from '@/entities/withdrawal/ui/OrderAmounts'
+import { WithdrawalStatusBadge } from '@/entities/withdrawal/ui/WithdrawalStatusBadge'
 import { useCancelWithdrawal } from '@/features/cancel-withdrawal/model/useCancelWithdrawal'
 import { useMarkWithdrawalSeen } from '@/features/mark-withdrawal-seen/model/useMarkWithdrawalSeen'
 import { useReleaseWithdrawal } from '@/features/release-withdrawal/model/useReleaseWithdrawal'
+import { useSendChatMessage } from '@/features/send-chat-message/model/useSendChatMessage'
 import { getErrorMessage } from '@/shared/lib/errors'
 import { formatDateTime, formatPhone, formatRub } from '@/shared/lib/formatters'
 import { Badge } from '@/shared/ui/Badge'
 import { Button } from '@/shared/ui/Button'
 import { Card } from '@/shared/ui/Card'
 import { ConfirmDialog } from '@/shared/ui/ConfirmDialog'
+import { CopyValue } from '@/shared/ui/CopyValue'
 import { EmptyState, ErrorState, LoadingState } from '@/shared/ui/QueryState'
 
-function DetailRow({
-  icon,
-  label,
-  value,
-}: {
-  icon: React.ReactNode
-  label: string
-  value: React.ReactNode
-}) {
+const EVENT_TITLES: Record<string, string> = {
+  WITHDRAWAL_CREATED: 'Заявка создана',
+  WITHDRAWAL_QUEUED: 'Заявка поставлена в очередь',
+  WITHDRAWAL_PUBLISHED: 'Сумма опубликована в объявлении',
+  ADVERTISEMENT_UPDATED: 'Объявление Bybit обновлено',
+  WITHDRAWAL_REMOVED_FROM_AD: 'Сумма убрана из объявления',
+  ORDER_FOUND: 'Ордер Bybit найден',
+  ORDER_CANCELLED: 'Ордер Bybit отменён',
+  ORDER_COMPLETED_EXTERNALLY: 'Ордер завершён на стороне Bybit',
+  WITHDRAWAL_RETURNED_TO_WORK: 'Заявка возвращена в работу',
+  REQUISITES_SENT: 'Реквизиты отправлены в чат',
+  CHAT_MESSAGE_SENT: 'Оператор отправил сообщение',
+  ORDER_PAID: 'Покупатель отметил оплату',
+  MAIL_CHECK_STARTED: 'Начата проверка почты',
+  EMAIL_FOUND: 'Письмо с чеком найдено',
+  PDF_FOUND: 'PDF-чек найден',
+  PDF_PARSED: 'Данные PDF-чека распознаны',
+  VERIFICATION_SUCCEEDED: 'Чек успешно проверен',
+  VERIFICATION_FAILED: 'Проверка чека не пройдена',
+  RELEASE_SUCCEEDED: 'USDT успешно отпущены',
+  RELEASE_FAILED: 'Не удалось отпустить USDT',
+  MANUAL_RELEASE_SUCCEEDED: 'USDT отпущены вручную',
+  ATTENTION_REQUIRED: 'Требуется внимание оператора',
+  COMPLETION_SEEN: 'Завершение подтверждено оператором',
+  BYBIT_API_ERROR: 'Ошибка Bybit API',
+  IMAPS_ERROR: 'Ошибка получения почты',
+  PDF_PARSER_ERROR: 'Ошибка чтения PDF-чека',
+  WITHDRAWAL_CANCELLED: 'Заявка отменена',
+  SYSTEM_RESYNC: 'Система синхронизирована',
+}
+
+function DetailRow({ icon, label, value }: { icon: ReactNode; label: string; value: ReactNode }) {
   return (
     <div className="detail-row">
       <span className="detail-row__icon">{icon}</span>
@@ -57,15 +86,6 @@ function DetailRow({
       </div>
     </div>
   )
-}
-
-function ChatStatus({ message }: { message: ChatMessageLog }) {
-  const tone =
-    message.status === 'SENT' ? 'success' : message.status === 'FAILED' ? 'danger' : 'warning'
-  const label =
-    message.status === 'SENT' ? 'Отправлено' : message.status === 'FAILED' ? 'Ошибка' : 'Ожидает'
-
-  return <Badge tone={tone}>{label}</Badge>
 }
 
 function ReceiptStatus({ check }: { check: EmailReceiptCheck }) {
@@ -115,9 +135,25 @@ function WithdrawalSummary({ withdrawal }: { withdrawal: Withdrawal }) {
             )
           }
         />
+        {withdrawal.bybitOrderAmountRub != null && (
+          <DetailRow
+            icon={<ReceiptText size={16} />}
+            label="Сумма ордера в рублях"
+            value={
+              <CopyValue
+                value={String(withdrawal.bybitOrderAmountRub)}
+                successMessage="Сумма ордера скопирована"
+              >
+                {formatRub(withdrawal.bybitOrderAmountRub)}
+              </CopyValue>
+            }
+          />
+        )}
       </div>
 
-      <OrderAmounts withdrawal={withdrawal} />
+      <div className="details-amounts">
+        <OrderAmounts withdrawal={withdrawal} />
+      </div>
 
       <div className="details-meta">
         <div>
@@ -158,6 +194,46 @@ function WithdrawalSummary({ withdrawal }: { withdrawal: Withdrawal }) {
   )
 }
 
+function EventHistory({ events }: { events: WithdrawalEvent[] }) {
+  return (
+    <Card
+      className="history-card"
+      title="История обработки"
+      description={`${events.length} событий`}
+      icon={<CheckCircle2 size={17} />}
+    >
+      {events.length === 0 ? (
+        <EmptyState
+          title="История пока пуста"
+          description="События появятся по мере обработки заявки."
+        />
+      ) : (
+        <ol className="event-timeline">
+          {[...events]
+            .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+            .map((event, index) => (
+              <li key={event.id}>
+                <span className={index === 0 ? 'event-marker is-current' : 'event-marker'}>
+                  <Check size={12} />
+                </span>
+                <div className="event-content">
+                  <strong>{EVENT_TITLES[event.eventType] || 'Событие обработки'}</strong>
+                  <span>{formatDateTime(event.createdAt, true)}</span>
+                  {event.payloadJson && (
+                    <details>
+                      <summary>Технические данные</summary>
+                      <pre>{event.payloadJson}</pre>
+                    </details>
+                  )}
+                </div>
+              </li>
+            ))}
+        </ol>
+      )}
+    </Card>
+  )
+}
+
 export function WithdrawalDetailsPage() {
   const params = useParams()
   const withdrawalId = Number(params.withdrawalId)
@@ -165,8 +241,17 @@ export function WithdrawalDetailsPage() {
   const cancelMutation = useCancelWithdrawal()
   const markSeenMutation = useMarkWithdrawalSeen()
   const releaseMutation = useReleaseWithdrawal()
+  const sendMessageMutation = useSendChatMessage(withdrawalId)
   const [confirmOpen, setConfirmOpen] = useState(false)
   const [releaseConfirmOpen, setReleaseConfirmOpen] = useState(false)
+  const [messageText, setMessageText] = useState('')
+  const [openedReceipt, setOpenedReceipt] = useState<EmailReceiptCheck | null>(null)
+  const chatEndRef = useRef<HTMLDivElement>(null)
+
+  const chatMessages = detailsQuery.data?.chatMessages ?? []
+  useEffect(() => {
+    chatEndRef.current?.scrollIntoView({ block: 'end' })
+  }, [chatMessages.length])
 
   if (!Number.isInteger(withdrawalId) || withdrawalId <= 0) {
     return (
@@ -188,7 +273,7 @@ export function WithdrawalDetailsPage() {
     return (
       <div className="page">
         <Link className="back-link" to="/">
-          <ArrowLeft size={16} /> К рабочей панели
+          <ArrowLeft size={16} /> К заявкам
         </Link>
         <Card>
           <ErrorState
@@ -202,7 +287,7 @@ export function WithdrawalDetailsPage() {
 
   if (!detailsQuery.data) return null
 
-  const { withdrawal, events, chatMessages, receiptChecks } = detailsQuery.data
+  const { withdrawal, events, receiptChecks } = detailsQuery.data
 
   const cancel = async () => {
     try {
@@ -236,11 +321,26 @@ export function WithdrawalDetailsPage() {
     }
   }
 
+  const sendMessage = async (event: FormEvent) => {
+    event.preventDefault()
+    const message = messageText.trim()
+    if (!message) return
+
+    try {
+      await sendMessageMutation.mutateAsync(message)
+      setMessageText('')
+      toast.success('Сообщение отправлено')
+      void detailsQuery.refetch()
+    } catch (error) {
+      toast.error('Не удалось отправить сообщение', { description: getErrorMessage(error) })
+    }
+  }
+
   return (
     <>
       <div className="page withdrawal-details-page">
         <Link className="back-link" to="/">
-          <ArrowLeft size={16} /> К рабочей панели
+          <ArrowLeft size={16} /> К заявкам
         </Link>
 
         <div className="details-hero">
@@ -253,7 +353,13 @@ export function WithdrawalDetailsPage() {
                 </Badge>
               )}
             </div>
-            <h1>{formatRub(withdrawal.amountRub)}</h1>
+            <CopyValue
+              className="details-hero__amount"
+              value={String(withdrawal.amountRub)}
+              successMessage="Сумма заявки скопирована"
+            >
+              {formatRub(withdrawal.amountRub)}
+            </CopyValue>
             <div className="details-hero__meta">
               <WithdrawalStatusBadge status={withdrawal.status} title={withdrawal.statusTitle} />
               <span>Создана {formatDateTime(withdrawal.createdAt)}</span>
@@ -269,7 +375,7 @@ export function WithdrawalDetailsPage() {
                 variant="secondary"
                 icon={<Check size={16} />}
                 loading={markSeenMutation.isPending}
-                onClick={markSeen}
+                onClick={() => void markSeen()}
               >
                 Увидел
               </Button>
@@ -296,75 +402,8 @@ export function WithdrawalDetailsPage() {
         </div>
 
         <div className="details-grid">
-          <aside className="details-grid__side">
+          <div className="details-column">
             <WithdrawalSummary withdrawal={withdrawal} />
-
-            <Card title="Сообщения в чат" icon={<MessageSquareText size={17} />}>
-              {chatMessages.length === 0 ? (
-                <EmptyState
-                  title="Сообщений пока нет"
-                  description="Лог появится после привязки Bybit-ордера."
-                />
-              ) : (
-                <div className="chat-list">
-                  {chatMessages.map((message) => (
-                    <article className="chat-message" key={message.id}>
-                      <div className="chat-message__top">
-                        <span>Сообщение #{message.messageIndex}</span>
-                        <ChatStatus message={message} />
-                      </div>
-                      <p>{message.messageText}</p>
-                      <div className="chat-message__bottom">
-                        <span>{formatDateTime(message.sentAt, true)}</span>
-                        {message.error && <span className="text-danger">{message.error}</span>}
-                      </div>
-                    </article>
-                  ))}
-                </div>
-              )}
-            </Card>
-          </aside>
-
-          <div className="details-grid__main">
-            <Card
-              title="История обработки"
-              description={`${events.length} событий`}
-              icon={<CheckCircle2 size={17} />}
-            >
-              {events.length === 0 ? (
-                <EmptyState
-                  title="История пока пуста"
-                  description="События появятся по мере обработки заявки."
-                />
-              ) : (
-                <ol className="event-timeline">
-                  {[...events]
-                    .sort(
-                      (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
-                    )
-                    .map((event, index) => (
-                      <li key={event.id}>
-                        <span className={index === 0 ? 'event-marker is-current' : 'event-marker'}>
-                          <Check size={12} />
-                        </span>
-                        <div className="event-content">
-                          <div>
-                            <strong>{event.message}</strong>
-                            <span>{formatDateTime(event.createdAt, true)}</span>
-                          </div>
-                          <Badge tone="neutral">{event.eventType}</Badge>
-                          {event.payloadJson && (
-                            <details>
-                              <summary>Технические данные</summary>
-                              <pre>{event.payloadJson}</pre>
-                            </details>
-                          )}
-                        </div>
-                      </li>
-                    ))}
-                </ol>
-              )}
-            </Card>
 
             <Card
               title="Проверка чека"
@@ -374,20 +413,30 @@ export function WithdrawalDetailsPage() {
               {receiptChecks.length === 0 ? (
                 <EmptyState
                   title="Проверок пока нет"
-                  description="Результат появится после получения PDF-чека по почте."
+                  description="PDF-чек появится после получения письма."
                   icon={<Mail size={21} />}
                 />
               ) : (
                 <div className="receipt-list">
                   {receiptChecks.map((check) => (
                     <article className="receipt-check" key={check.id}>
-                      <div className="receipt-check__header">
-                        <div>
+                      <button
+                        type="button"
+                        className="receipt-document"
+                        disabled={!check.pdfAvailable}
+                        onClick={() => setOpenedReceipt(check)}
+                      >
+                        <span className="receipt-document__icon">
+                          <FileText size={20} />
+                        </span>
+                        <span>
                           <strong>{check.pdfFilename || 'PDF-чек'}</strong>
-                          <span>{formatDateTime(check.createdAt, true)}</span>
-                        </div>
+                          <small>
+                            {check.pdfAvailable ? 'Открыть документ' : 'Файл не сохранён'}
+                          </small>
+                        </span>
                         <ReceiptStatus check={check} />
-                      </div>
+                      </button>
                       <div className="receipt-check__grid">
                         <div>
                           <span>Сумма</span>
@@ -409,14 +458,6 @@ export function WithdrawalDetailsPage() {
                           <span>Банк</span>
                           <strong>{check.parsedRecipientBank || '—'}</strong>
                         </div>
-                        <div>
-                          <span>Статус операции</span>
-                          <strong>{check.parsedStatus || '—'}</strong>
-                        </div>
-                        <div>
-                          <span>ID операции</span>
-                          <strong className="mono">{check.parsedOperationId || '—'}</strong>
-                        </div>
                       </div>
                       {check.verificationError && (
                         <div className="receipt-check__error">
@@ -430,15 +471,127 @@ export function WithdrawalDetailsPage() {
               )}
             </Card>
           </div>
+
+          <div className="details-column">
+            <EventHistory events={events} />
+          </div>
+
+          <div className="details-column details-column--chat">
+            <Card
+              className="deal-chat"
+              title="Чат сделки"
+              description={
+                withdrawal.bybitOrderId ? 'Синхронизирован с Bybit' : 'Ордер не назначен'
+              }
+              icon={<MessageSquareText size={17} />}
+            >
+              <div className="deal-chat__messages">
+                {chatMessages.length === 0 ? (
+                  <EmptyState
+                    title="Сообщений пока нет"
+                    description="Переписка появится после привязки Bybit-ордера."
+                  />
+                ) : (
+                  chatMessages.map((message) =>
+                    message.direction === 'SYSTEM' ? (
+                      <div className="chat-system-message" key={message.id}>
+                        <span>{message.messageText}</span>
+                        <small>{formatDateTime(message.createdAt, true)}</small>
+                      </div>
+                    ) : (
+                      <article
+                        className={`chat-message chat-message--${message.direction.toLowerCase()}`}
+                        key={message.id}
+                      >
+                        <div className="chat-message__author">
+                          <strong>{message.authorName}</strong>
+                          <span>{formatDateTime(message.createdAt, true)}</span>
+                        </div>
+                        <p>{message.messageText}</p>
+                        {message.status !== 'SENT' && (
+                          <span
+                            className={
+                              message.status === 'FAILED'
+                                ? 'chat-message__state is-error'
+                                : 'chat-message__state'
+                            }
+                          >
+                            {message.status === 'FAILED' ? 'Ошибка отправки' : 'Отправляется'}
+                          </span>
+                        )}
+                        {message.error && <small className="text-danger">{message.error}</small>}
+                      </article>
+                    ),
+                  )
+                )}
+                <div ref={chatEndRef} />
+              </div>
+
+              <form className="deal-chat__composer" onSubmit={(event) => void sendMessage(event)}>
+                <textarea
+                  value={messageText}
+                  maxLength={1000}
+                  rows={2}
+                  placeholder={
+                    withdrawal.bybitOrderId
+                      ? 'Написать контрагенту...'
+                      : 'Чат станет доступен после привязки ордера'
+                  }
+                  disabled={!withdrawal.bybitOrderId || sendMessageMutation.isPending}
+                  onChange={(event) => setMessageText(event.target.value)}
+                  onKeyDown={(event) => {
+                    if (event.key === 'Enter' && !event.shiftKey) {
+                      event.preventDefault()
+                      event.currentTarget.form?.requestSubmit()
+                    }
+                  }}
+                />
+                <Button
+                  type="submit"
+                  icon={<Send size={17} />}
+                  loading={sendMessageMutation.isPending}
+                  disabled={!withdrawal.bybitOrderId || !messageText.trim()}
+                >
+                  Отправить
+                </Button>
+              </form>
+            </Card>
+          </div>
         </div>
       </div>
+
+      {openedReceipt && (
+        <div
+          className="pdf-modal-backdrop"
+          role="presentation"
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget) setOpenedReceipt(null)
+          }}
+        >
+          <section className="pdf-modal" role="dialog" aria-modal="true" aria-label="Просмотр чека">
+            <header>
+              <div>
+                <strong>{openedReceipt.pdfFilename || 'PDF-чек'}</strong>
+                <span>{formatDateTime(openedReceipt.createdAt, true)}</span>
+              </div>
+              <button type="button" onClick={() => setOpenedReceipt(null)} aria-label="Закрыть">
+                <X size={20} />
+              </button>
+            </header>
+            <iframe
+              title={openedReceipt.pdfFilename || 'PDF-чек'}
+              src={withdrawalApi.getReceiptPdfUrl(withdrawal.id, openedReceipt.id)}
+            />
+          </section>
+        </div>
+      )}
 
       <ConfirmDialog
         open={confirmOpen}
         title="Отменить заявку?"
         description={
           <p>
-            Backend безопасно перепроверит наличие ордера перед отменой заявки{' '}
+            Backend перепроверит наличие ордера перед отменой заявки{' '}
             <strong>#{withdrawal.id}</strong>.
           </p>
         }
@@ -454,8 +607,7 @@ export function WithdrawalDetailsPage() {
         title="Отпустить ордер?"
         description={
           <p>
-            Система не смогла проверить оплату по чеку с почты. Вы уверены, что хотите отпустить
-            ордер? Это означает, что контрагент получит USDT.
+            Контрагент получит USDT. Используйте ручное подтверждение только после проверки оплаты.
           </p>
         }
         confirmLabel="Отпустить ордер"

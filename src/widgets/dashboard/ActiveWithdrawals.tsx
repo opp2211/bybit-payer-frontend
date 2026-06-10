@@ -1,6 +1,6 @@
-import { ArrowUpRight, Ban, ListChecks, TriangleAlert, Unlock } from 'lucide-react'
+import { Ban, ListChecks, TriangleAlert, Unlock } from 'lucide-react'
 import { useMemo, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
 
 import { BybitOrderLink } from '@/entities/bybit-order/ui/BybitOrderLink'
@@ -15,6 +15,7 @@ import { Badge } from '@/shared/ui/Badge'
 import { Button } from '@/shared/ui/Button'
 import { Card } from '@/shared/ui/Card'
 import { ConfirmDialog } from '@/shared/ui/ConfirmDialog'
+import { CopyValue } from '@/shared/ui/CopyValue'
 import { EmptyState, ErrorState, LoadingState } from '@/shared/ui/QueryState'
 
 type Props = {
@@ -43,6 +44,7 @@ export function ActiveWithdrawals({ data = [], loading, error, onRetry }: Props)
   const [selectedForRelease, setSelectedForRelease] = useState<Withdrawal | null>(null)
   const cancelMutation = useCancelWithdrawal()
   const releaseMutation = useReleaseWithdrawal()
+  const navigate = useNavigate()
   const withdrawals = useMemo(
     () =>
       [...data].sort(
@@ -116,10 +118,25 @@ export function ActiveWithdrawals({ data = [], loading, error, onRetry }: Props)
                   <tr
                     key={withdrawal.id}
                     className={withdrawal.attentionRequired ? 'data-table__row--attention' : ''}
+                    role="link"
+                    tabIndex={0}
+                    onClick={(event) => {
+                      if ((event.target as HTMLElement).closest('button, a')) return
+                      navigate(`/withdrawals/${withdrawal.id}`)
+                    }}
+                    onKeyDown={(event) => {
+                      if (event.key === 'Enter') navigate(`/withdrawals/${withdrawal.id}`)
+                    }}
                   >
                     <td data-label="Заявка">
                       <div className="cell-primary">
-                        <strong>{formatRub(withdrawal.amountRub)}</strong>
+                        <CopyValue
+                          className="withdrawal-amount-copy"
+                          value={String(withdrawal.amountRub)}
+                          successMessage="Сумма заявки скопирована"
+                        >
+                          {formatRub(withdrawal.amountRub)}
+                        </CopyValue>
                         <span>#{withdrawal.id}</span>
                       </div>
                     </td>
@@ -153,7 +170,14 @@ export function ActiveWithdrawals({ data = [], loading, error, onRetry }: Props)
                               compact
                               prefix="Order "
                             />
-                            <span>{formatRub(withdrawal.bybitOrderAmountRub)}</span>
+                            {withdrawal.bybitOrderAmountRub != null && (
+                              <CopyValue
+                                value={String(withdrawal.bybitOrderAmountRub)}
+                                successMessage="Сумма ордера скопирована"
+                              >
+                                {formatRub(withdrawal.bybitOrderAmountRub)}
+                              </CopyValue>
+                            )}
                             <OrderAmounts withdrawal={withdrawal} compact />
                           </>
                         ) : withdrawal.queuePosition ? (
@@ -195,13 +219,6 @@ export function ActiveWithdrawals({ data = [], loading, error, onRetry }: Props)
                             <span className="action-label">Отпустить ордер</span>
                           </Button>
                         )}
-                        <Link
-                          className="table-link"
-                          to={`/withdrawals/${withdrawal.id}`}
-                          aria-label={`Открыть заявку ${withdrawal.id}`}
-                        >
-                          <ArrowUpRight size={16} />
-                        </Link>
                       </div>
                     </td>
                   </tr>

@@ -13,7 +13,7 @@ type Props = {
 export function OrderAmounts({ withdrawal, compact = false }: Props) {
   if (withdrawal.bybitOrderQuantityUsdt == null) return null
 
-  const values = [
+  const allValues = [
     {
       label: 'Сумма',
       value: withdrawal.bybitOrderQuantityUsdt,
@@ -31,6 +31,7 @@ export function OrderAmounts({ withdrawal, compact = false }: Props) {
       value: withdrawal.bybitOrderTotalUsdt ?? withdrawal.bybitOrderQuantityUsdt,
     },
   ]
+  const values = compact ? allValues.slice(-1) : allValues
 
   const copy = async (label: string, value: number) => {
     try {

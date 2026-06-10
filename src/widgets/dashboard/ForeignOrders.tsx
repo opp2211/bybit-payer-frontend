@@ -6,7 +6,7 @@ import { getErrorMessage } from '@/shared/lib/errors'
 import { formatDateTime, formatRub } from '@/shared/lib/formatters'
 import { Badge } from '@/shared/ui/Badge'
 import { Card } from '@/shared/ui/Card'
-import { EmptyState, ErrorState, LoadingState } from '@/shared/ui/QueryState'
+import { ErrorState, LoadingState } from '@/shared/ui/QueryState'
 
 type Props = {
   data?: ForeignBybitOrder[]
@@ -18,8 +18,9 @@ type Props = {
 export function ForeignOrders({ data = [], loading, error, onRetry }: Props) {
   return (
     <Card
+      className="foreign-orders-card"
       title="Чужие ордера"
-      description="Ордера, которые нельзя безопасно сопоставить"
+      description="Не сопоставлены с заявками"
       icon={<ShieldAlert size={17} />}
       action={data.length > 0 ? <Badge tone="danger">{data.length}</Badge> : undefined}
     >
@@ -28,11 +29,7 @@ export function ForeignOrders({ data = [], loading, error, onRetry }: Props) {
       ) : error && !data.length ? (
         <ErrorState message={getErrorMessage(error)} onRetry={onRetry} />
       ) : data.length === 0 ? (
-        <EmptyState
-          title="Чужих ордеров не обнаружено"
-          description="Все входящие ордера корректно сопоставлены с заявками."
-          icon={<ShieldAlert size={21} />}
-        />
+        <div className="foreign-orders-empty">Чужих ордеров не обнаружено</div>
       ) : (
         <div className="data-table-wrap">
           <table className="data-table">

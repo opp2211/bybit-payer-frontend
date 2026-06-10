@@ -1,5 +1,5 @@
-import { ArrowUpRight, Check, CheckCircle2, Sparkles } from 'lucide-react'
-import { Link } from 'react-router-dom'
+import { Check, CheckCircle2, Sparkles } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
 
 import { BybitOrderLink } from '@/entities/bybit-order/ui/BybitOrderLink'
@@ -11,6 +11,7 @@ import { formatDateTime, formatPhone, formatRub } from '@/shared/lib/formatters'
 import { Badge } from '@/shared/ui/Badge'
 import { Button } from '@/shared/ui/Button'
 import { Card } from '@/shared/ui/Card'
+import { CopyValue } from '@/shared/ui/CopyValue'
 import { EmptyState, ErrorState, LoadingState } from '@/shared/ui/QueryState'
 
 type Props = {
@@ -22,6 +23,7 @@ type Props = {
 
 export function CompletedWithdrawals({ data = [], loading, error, onRetry }: Props) {
   const markSeenMutation = useMarkWithdrawalSeen()
+  const navigate = useNavigate()
   const unseenCount = data.filter((item) => !item.completionSeen).length
   const withdrawals = [...data].sort(
     (a, b) =>
@@ -67,15 +69,32 @@ export function CompletedWithdrawals({ data = [], loading, error, onRetry }: Pro
                 <th>Bybit order</th>
                 <th>Завершена</th>
                 <th>Подтверждение</th>
-                <th aria-label="Открыть" />
               </tr>
             </thead>
             <tbody>
               {withdrawals.map((withdrawal) => (
-                <tr key={withdrawal.id} className={!withdrawal.completionSeen ? 'new-row' : ''}>
+                <tr
+                  key={withdrawal.id}
+                  className={!withdrawal.completionSeen ? 'new-row' : ''}
+                  role="link"
+                  tabIndex={0}
+                  onClick={(event) => {
+                    if ((event.target as HTMLElement).closest('button, a')) return
+                    navigate(`/withdrawals/${withdrawal.id}`)
+                  }}
+                  onKeyDown={(event) => {
+                    if (event.key === 'Enter') navigate(`/withdrawals/${withdrawal.id}`)
+                  }}
+                >
                   <td data-label="Заявка">
                     <div className="cell-primary">
-                      <strong>{formatRub(withdrawal.amountRub)}</strong>
+                      <CopyValue
+                        className="withdrawal-amount-copy"
+                        value={String(withdrawal.amountRub)}
+                        successMessage="Сумма заявки скопирована"
+                      >
+                        {formatRub(withdrawal.amountRub)}
+                      </CopyValue>
                       <span>#{withdrawal.id}</span>
                     </div>
                   </td>
@@ -116,15 +135,6 @@ export function CompletedWithdrawals({ data = [], loading, error, onRetry }: Pro
                         <Check size={14} /> Просмотрено
                       </span>
                     )}
-                  </td>
-                  <td>
-                    <Link
-                      className="table-link"
-                      to={`/withdrawals/${withdrawal.id}`}
-                      aria-label={`Открыть заявку ${withdrawal.id}`}
-                    >
-                      <ArrowUpRight size={16} />
-                    </Link>
                   </td>
                 </tr>
               ))}
