@@ -1,6 +1,7 @@
 @import './tokens.css';
 @import './global.css';
 @import '@/shared/ui/ui.css';
+@import '@/features/auth/auth.css';
 @import '@/widgets/app-shell/app-shell.css';
 @import '@/widgets/dashboard/dashboard.css';
 @import '@/features/create-withdrawal/create-withdrawal-form.css';

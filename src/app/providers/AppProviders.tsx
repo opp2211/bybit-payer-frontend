@@ -3,6 +3,8 @@ import { useState, type PropsWithChildren } from 'react'
 import { BrowserRouter } from 'react-router-dom'
 import { Toaster } from 'sonner'
 
+import { AuthProvider } from '@/features/auth/model/AuthProvider'
+
 export function AppProviders({ children }: PropsWithChildren) {
   const [queryClient] = useState(
     () =>
@@ -22,7 +24,9 @@ export function AppProviders({ children }: PropsWithChildren) {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <BrowserRouter>{children}</BrowserRouter>
+      <BrowserRouter>
+        <AuthProvider>{children}</AuthProvider>
+      </BrowserRouter>
       <Toaster position="top-right" richColors closeButton />
     </QueryClientProvider>
   )

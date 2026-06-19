@@ -5,6 +5,7 @@ import {
   CircleAlert,
   CircleDollarSign,
   LayoutDashboard,
+  LogOut,
   MailCheck,
   Menu,
   RefreshCw,
@@ -17,6 +18,7 @@ import { Link, NavLink, Outlet } from 'react-router-dom'
 import { toast } from 'sonner'
 
 import { useSystemStatusQuery } from '@/entities/system/model/queries'
+import { useAuth } from '@/features/auth/model/useAuth'
 import { useResyncSystem } from '@/features/resync-system/model/useResyncSystem'
 import { getErrorMessage } from '@/shared/lib/errors'
 import { formatDateTime } from '@/shared/lib/formatters'
@@ -31,6 +33,7 @@ const navigation = [
 ]
 
 export function AppShell() {
+  const { user, logout } = useAuth()
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [systemMenuOpen, setSystemMenuOpen] = useState(false)
   const systemMenuRef = useRef<HTMLDivElement>(null)
@@ -54,6 +57,16 @@ export function AppShell() {
       toast.success('Система синхронизирована')
     } catch (error) {
       toast.error('Не удалось синхронизировать систему', {
+        description: getErrorMessage(error),
+      })
+    }
+  }
+
+  const logOut = async () => {
+    try {
+      await logout()
+    } catch (error) {
+      toast.error('Не удалось выйти', {
         description: getErrorMessage(error),
       })
     }
@@ -104,8 +117,8 @@ export function AppShell() {
               <ShieldCheck size={17} />
             </span>
             <div>
-              <strong>Локальный контур</strong>
-              <span>Данные остаются в вашей сети</span>
+              <strong>Защищённый доступ</strong>
+              <span>Все операции требуют авторизации</span>
             </div>
           </div>
           <div className="sidebar__version">FlowPay v1.0</div>
@@ -222,10 +235,18 @@ export function AppShell() {
               <Activity size={17} />
             </span>
             <span>
-              <strong>Оператор</strong>
-              <small>Локальный доступ</small>
+              <strong>{user?.username ?? 'Оператор'}</strong>
+              <small>Авторизован</small>
             </span>
           </div>
+          <Button
+            variant="ghost"
+            size="sm"
+            icon={<LogOut size={16} />}
+            aria-label="Выйти"
+            title="Выйти"
+            onClick={() => void logOut()}
+          />
         </header>
 
         <main className="app-main">

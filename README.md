@@ -14,6 +14,8 @@
 ## Локальный запуск
 
 Backend должен быть доступен на `http://localhost:8080`.
+Перед запуском настройте `AUTH_USERNAME`, `AUTH_PASSWORD_HASH` и
+`AUTH_REMEMBER_ME_KEY` в backend.
 
 ```bash
 npm install
@@ -21,6 +23,8 @@ npm run dev
 ```
 
 Приложение откроется на `http://localhost:5173`. Vite проксирует запросы `/api` на backend.
+При первом открытии появится форма входа. После успешной авторизации браузер
+останется авторизованным до явного выхода.
 
 Для другого адреса API создайте `.env.local`:
 
@@ -30,6 +34,12 @@ VITE_API_BASE_URL=http://localhost:8080
 
 При прямом URL backend должен разрешать CORS. Для стандартного локального сценария оставьте
 переменную пустой и используйте Vite proxy.
+
+Если backend запущен на другом локальном порту, поменяйте только цель dev-прокси:
+
+```dotenv
+VITE_DEV_PROXY_TARGET=http://localhost:18080
+```
 
 ## Проверки
 
