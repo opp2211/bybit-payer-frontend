@@ -26,14 +26,8 @@ npm run dev
 При первом открытии появится форма входа. После успешной авторизации браузер
 останется авторизованным до явного выхода.
 
-Для другого адреса API создайте `.env.local`:
-
-```dotenv
-VITE_API_BASE_URL=http://localhost:8080
-```
-
-При прямом URL backend должен разрешать CORS. Для стандартного локального сценария оставьте
-переменную пустой и используйте Vite proxy.
+Frontend всегда использует относительные адреса `/api/*`. В dev-режиме Vite проксирует их
+на backend, а в production frontend и backend работают через один HTTPS-origin.
 
 Если backend запущен на другом локальном порту, поменяйте только цель dev-прокси:
 
@@ -48,6 +42,9 @@ npm run lint
 npm run format:check
 npm run build
 ```
+
+Результат production-сборки создаётся в `dist/`. Инструкция первого ручного деплоя через
+Caddy находится в [DEPLOY.md](./DEPLOY.md).
 
 ## Docker
 
