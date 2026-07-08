@@ -81,7 +81,40 @@ mv /var/www/bybit-payer.previous /var/www/bybit-payer
 $rollbackScript | ssh -i $SSH_KEY $VPS 'sudo bash -se'
 ```
 
-## 3. Caddy
+## 3. Автоматический деплой через GitHub Actions
+
+В репозитории добавлен workflow `.github/workflows/deploy-frontend.yml`.
+Он запускается при push в `master` и вручную через `workflow_dispatch`.
+
+Перед деплоем workflow выполняет:
+
+```bash
+npm ci
+npm run lint
+npm run format:check
+npm run build
+```
+
+Если проверки успешны, артефакт `dist/` копируется на VPS во временный каталог, затем
+атомарно заменяет `/var/www/bybit-payer` с сохранением предыдущей версии в
+`/var/www/bybit-payer.previous`.
+
+В GitHub нужно добавить repository secrets:
+
+- `VPS_HOST` - IP или домен VPS, например `51.102.86.38`;
+- `VPS_USER` - SSH-пользователь, например `ubuntu`;
+- `VPS_SSH_PRIVATE_KEY` - приватный SSH-ключ без passphrase для деплоя.
+
+Опциональные repository variables:
+
+- `VPS_SSH_PORT` - SSH-порт, если отличается от `22`;
+- `FRONTEND_SITE_DIR` - каталог сайта, если отличается от `/var/www/bybit-payer`;
+- `FRONTEND_PUBLIC_URL` - публичный URL для HTTP-проверки после деплоя, например `https://bypayer.maltsev.fun/`.
+
+Пользователь `VPS_USER` должен иметь право выполнять `sudo bash` без интерактивного
+ввода пароля, как в ручном деплое выше.
+
+## 4. Caddy
 
 Готовая конфигурация находится в `deploy/Caddyfile`:
 
@@ -129,7 +162,7 @@ ssh -i $SSH_KEY $VPS 'sudo journalctl -u caddy -n 50 --no-pager'
 ssh -i $SSH_KEY $VPS 'curl -fsS http://127.0.0.1:8080/api/auth/csrf >/dev/null && echo backend-ok'
 ```
 
-## 4. Проверка с клиентской стороны
+## 5. Проверка с клиентской стороны
 
 ```powershell
 curl.exe -fsSI https://bypayer.maltsev.fun/
