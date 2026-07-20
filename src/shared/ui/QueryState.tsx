@@ -50,15 +50,17 @@ type EmptyProps = {
   title: string
   description: string
   icon?: ReactNode
+  action?: ReactNode
 }
 
-export function EmptyState({ title, description, icon }: EmptyProps) {
+export function EmptyState({ title, description, icon, action }: EmptyProps) {
   return (
     <div className="state-box state-box--empty">
       <span className="state-box__icon">{icon ?? <Inbox size={21} />}</span>
       <div>
         <strong>{title}</strong>
         <p>{description}</p>
+        {action}
       </div>
     </div>
   )

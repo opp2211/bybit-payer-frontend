@@ -12,6 +12,7 @@ export type RecipientBank = string
 
 export type Withdrawal = {
   id: number
+  publicId: string
   amountRub: number
   recipientPhone: string
   recipientBank: RecipientBank
@@ -39,6 +40,7 @@ export type Withdrawal = {
   cancelledAt: string | null
   lastError: string | null
   lastWarning: string | null
+  createdByUsername: string | null
   canCancel: boolean
   canRelease: boolean
 }
@@ -48,6 +50,8 @@ export type WithdrawalEvent = {
   eventType: string
   message: string
   payloadJson: string | null
+  actorType: 'SYSTEM' | 'USER'
+  actorUsername: string | null
   createdAt: string
 }
 

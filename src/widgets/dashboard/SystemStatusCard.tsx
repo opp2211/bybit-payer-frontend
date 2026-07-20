@@ -3,6 +3,7 @@ import { toast } from 'sonner'
 
 import type { SystemStatus } from '@/entities/system/model/types'
 import { useResyncSystem } from '@/features/resync-system/model/useResyncSystem'
+import { useWorkspace } from '@/features/workspace/model/useWorkspace'
 import { getErrorMessage } from '@/shared/lib/errors'
 import { compactId, formatDateTime, formatNumber, formatRub } from '@/shared/lib/formatters'
 import { Badge } from '@/shared/ui/Badge'
@@ -41,9 +42,12 @@ function IntegrationRow({
 }
 
 export function SystemStatusCard({ data, loading, error, onRetry }: Props) {
-  const resyncMutation = useResyncSystem()
+  const { selectedWorkspaceId } = useWorkspace()
+  const resyncMutation = useResyncSystem(selectedWorkspaceId ?? '')
 
   const resync = async () => {
+    if (!selectedWorkspaceId) return
+
     try {
       await resyncMutation.mutateAsync()
       toast.success('Система пересинхронизирована')

@@ -34,10 +34,14 @@ const schema = z.object({
 
 type FormValues = z.infer<typeof schema>
 
-export function CreateWithdrawalForm() {
-  const mutation = useCreateWithdrawal()
+type Props = {
+  workspacePublicId: string
+}
+
+export function CreateWithdrawalForm({ workspacePublicId }: Props) {
+  const mutation = useCreateWithdrawal(workspacePublicId)
   const banksQuery = useActiveBanksQuery()
-  const systemQuery = useSystemStatusQuery()
+  const systemQuery = useSystemStatusQuery(workspacePublicId)
   const {
     register,
     handleSubmit,
@@ -63,7 +67,7 @@ export function CreateWithdrawalForm() {
         recipientPhone: values.recipientPhone.trim(),
       })
       reset()
-      toast.success(`Заявка #${created.id} создана`, {
+      toast.success(`Заявка ${created.publicId} создана`, {
         description:
           created.status === 'QUEUED'
             ? 'Заявка добавлена в очередь.'
@@ -79,14 +83,14 @@ export function CreateWithdrawalForm() {
   const status = systemQuery.data
   const rangeText =
     status?.currentMinRub != null && status.currentMaxRub != null
-      ? `${formatRub(status.currentMinRub)} — ${formatRub(status.currentMaxRub)}`
-      : 'рассчитается после синхронизации'
+      ? `${formatRub(status.currentMinRub)} - ${formatRub(status.currentMaxRub)}`
+      : 'рассчитывается после синхронизации'
 
   return (
     <Card
       className="create-form-card"
       title="Новая выплата"
-      description="Создайте заявку и отслеживайте её обработку"
+      description="Создайте заявку в текущем workspace"
       icon={<Send size={17} />}
     >
       <form className="create-form" onSubmit={onSubmit} noValidate>
@@ -100,7 +104,7 @@ export function CreateWithdrawalForm() {
               min="1"
               step="1"
               inputMode="numeric"
-              placeholder="10 000"
+              placeholder="10000"
               aria-invalid={Boolean(errors.amountRub)}
               {...register('amountRub', { valueAsNumber: true })}
             />
@@ -148,7 +152,7 @@ export function CreateWithdrawalForm() {
           {errors.recipientName ? (
             <span className="form-field__error">{errors.recipientName.message}</span>
           ) : (
-            <span className="form-field__hint">Имя будет строго сверено с PDF-чеком</span>
+            <span className="form-field__hint">Имя будет сверено с PDF-чеком</span>
           )}
         </div>
 
@@ -192,9 +196,9 @@ export function CreateWithdrawalForm() {
           ) : errors.recipientBank ? (
             <span className="form-field__error">{errors.recipientBank.message}</span>
           ) : banks.length === 0 && !banksQuery.isPending ? (
-            <span className="form-field__hint">На бэкенде нет активных банков</span>
+            <span className="form-field__hint">На backend нет активных банков</span>
           ) : (
-            <span className="form-field__hint">Список загружается с бэкенда</span>
+            <span className="form-field__hint">Список загружается с backend</span>
           )}
         </div>
 
@@ -205,7 +209,7 @@ export function CreateWithdrawalForm() {
               Доступный баланс:{' '}
               <strong>
                 {status?.availableUsdtBalance == null
-                  ? '—'
+                  ? '-'
                   : `${formatNumber(status.availableUsdtBalance)} USDT`}
               </strong>
             </span>

@@ -5,19 +5,28 @@ import { withdrawalKeys } from '@/entities/withdrawal/model/queries'
 import type { Withdrawal } from '@/entities/withdrawal/model/types'
 import { systemKeys } from '@/entities/system/model/queries'
 
+export type WithdrawalActionVariables = {
+  workspacePublicId: string
+  withdrawalPublicId: string
+}
+
 export function useCancelWithdrawal() {
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: (id: number) => withdrawalApi.cancel(id),
-    onSuccess: (cancelled) => {
-      queryClient.setQueryData<Withdrawal[]>(withdrawalKeys.active(), (current = []) =>
-        current.filter((item) => item.id !== cancelled.id),
+    mutationFn: ({ workspacePublicId, withdrawalPublicId }: WithdrawalActionVariables) =>
+      withdrawalApi.cancel(workspacePublicId, withdrawalPublicId),
+    onSuccess: (cancelled, { workspacePublicId, withdrawalPublicId }) => {
+      queryClient.setQueryData<Withdrawal[]>(
+        withdrawalKeys.active(workspacePublicId),
+        (current = []) => current.filter((item) => item.id !== cancelled.id),
       )
-      queryClient.setQueryData(withdrawalKeys.details(cancelled.id), (current) =>
-        current && typeof current === 'object' ? { ...current, withdrawal: cancelled } : current,
+      queryClient.setQueryData(
+        withdrawalKeys.details(workspacePublicId, withdrawalPublicId),
+        (current) =>
+          current && typeof current === 'object' ? { ...current, withdrawal: cancelled } : current,
       )
-      void queryClient.invalidateQueries({ queryKey: systemKeys.status() })
+      void queryClient.invalidateQueries({ queryKey: systemKeys.status(workspacePublicId) })
     },
   })
 }

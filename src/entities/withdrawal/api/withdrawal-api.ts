@@ -8,31 +8,48 @@ import { apiRequest } from '@/shared/api/api-client'
 import { API_BASE_URL } from '@/shared/config/env'
 
 export const withdrawalApi = {
-  getActive: () => apiRequest<Withdrawal[]>('/api/withdrawals/active'),
-  getCompleted: () => apiRequest<Withdrawal[]>('/api/withdrawals/completed'),
-  getDetails: (id: number) => apiRequest<WithdrawalDetails>(`/api/withdrawals/${id}`),
-  create: (payload: CreateWithdrawalRequest) =>
-    apiRequest<Withdrawal>('/api/withdrawals', {
+  getActive: (workspacePublicId: string) =>
+    apiRequest<Withdrawal[]>(`/api/workspaces/${workspacePublicId}/withdrawals/active`),
+  getCompleted: (workspacePublicId: string) =>
+    apiRequest<Withdrawal[]>(`/api/workspaces/${workspacePublicId}/withdrawals/completed`),
+  getDetails: (workspacePublicId: string, withdrawalPublicId: string) =>
+    apiRequest<WithdrawalDetails>(
+      `/api/workspaces/${workspacePublicId}/withdrawals/${withdrawalPublicId}`,
+    ),
+  create: (workspacePublicId: string, payload: CreateWithdrawalRequest) =>
+    apiRequest<Withdrawal>(`/api/workspaces/${workspacePublicId}/withdrawals`, {
       method: 'POST',
       body: JSON.stringify(payload),
     }),
-  cancel: (id: number) =>
-    apiRequest<Withdrawal>(`/api/withdrawals/${id}`, {
-      method: 'DELETE',
-    }),
-  markSeen: (id: number) =>
-    apiRequest<Withdrawal>(`/api/withdrawals/${id}/mark-seen`, {
-      method: 'POST',
-    }),
-  release: (id: number) =>
-    apiRequest<Withdrawal>(`/api/withdrawals/${id}/release`, {
-      method: 'POST',
-    }),
-  sendChatMessage: (id: number, message: string) =>
-    apiRequest<void>(`/api/withdrawals/${id}/chat/messages`, {
-      method: 'POST',
-      body: JSON.stringify({ message } satisfies SendChatMessageRequest),
-    }),
-  getReceiptPdfUrl: (withdrawalId: number, receiptId: number) =>
-    `${API_BASE_URL}/api/withdrawals/${withdrawalId}/receipts/${receiptId}/pdf`,
+  cancel: (workspacePublicId: string, withdrawalPublicId: string) =>
+    apiRequest<Withdrawal>(
+      `/api/workspaces/${workspacePublicId}/withdrawals/${withdrawalPublicId}`,
+      {
+        method: 'DELETE',
+      },
+    ),
+  markSeen: (workspacePublicId: string, withdrawalPublicId: string) =>
+    apiRequest<Withdrawal>(
+      `/api/workspaces/${workspacePublicId}/withdrawals/${withdrawalPublicId}/mark-seen`,
+      {
+        method: 'POST',
+      },
+    ),
+  release: (workspacePublicId: string, withdrawalPublicId: string) =>
+    apiRequest<Withdrawal>(
+      `/api/workspaces/${workspacePublicId}/withdrawals/${withdrawalPublicId}/release`,
+      {
+        method: 'POST',
+      },
+    ),
+  sendChatMessage: (workspacePublicId: string, withdrawalPublicId: string, message: string) =>
+    apiRequest<void>(
+      `/api/workspaces/${workspacePublicId}/withdrawals/${withdrawalPublicId}/chat/messages`,
+      {
+        method: 'POST',
+        body: JSON.stringify({ message } satisfies SendChatMessageRequest),
+      },
+    ),
+  getReceiptPdfUrl: (workspacePublicId: string, withdrawalPublicId: string, receiptId: number) =>
+    `${API_BASE_URL}/api/workspaces/${workspacePublicId}/withdrawals/${withdrawalPublicId}/receipts/${receiptId}/pdf`,
 }

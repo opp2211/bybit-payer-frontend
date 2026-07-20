@@ -24,18 +24,19 @@ import { toast } from 'sonner'
 
 import { BybitOrderLink } from '@/entities/bybit-order/ui/BybitOrderLink'
 import { withdrawalApi } from '@/entities/withdrawal/api/withdrawal-api'
+import { useWithdrawalDetailsQuery } from '@/entities/withdrawal/model/queries'
 import type {
   EmailReceiptCheck,
   Withdrawal,
   WithdrawalEvent,
 } from '@/entities/withdrawal/model/types'
-import { useWithdrawalDetailsQuery } from '@/entities/withdrawal/model/queries'
 import { OrderAmounts } from '@/entities/withdrawal/ui/OrderAmounts'
 import { WithdrawalStatusBadge } from '@/entities/withdrawal/ui/WithdrawalStatusBadge'
 import { useCancelWithdrawal } from '@/features/cancel-withdrawal/model/useCancelWithdrawal'
 import { useMarkWithdrawalSeen } from '@/features/mark-withdrawal-seen/model/useMarkWithdrawalSeen'
 import { useReleaseWithdrawal } from '@/features/release-withdrawal/model/useReleaseWithdrawal'
 import { useSendChatMessage } from '@/features/send-chat-message/model/useSendChatMessage'
+import { useWorkspace } from '@/features/workspace/model/useWorkspace'
 import { getErrorMessage } from '@/shared/lib/errors'
 import { formatDateTime, formatPhone, formatRub } from '@/shared/lib/formatters'
 import { Badge } from '@/shared/ui/Badge'
@@ -44,6 +45,8 @@ import { Card } from '@/shared/ui/Card'
 import { ConfirmDialog } from '@/shared/ui/ConfirmDialog'
 import { CopyValue } from '@/shared/ui/CopyValue'
 import { EmptyState, ErrorState, LoadingState } from '@/shared/ui/QueryState'
+
+const PUBLIC_ID_PATTERN = /^[0-9a-f]{7}$/i
 
 const EVENT_TITLES: Record<string, string> = {
   WITHDRAWAL_CREATED: 'Заявка создана',
@@ -135,6 +138,13 @@ function WithdrawalSummary({ withdrawal }: { withdrawal: Withdrawal }) {
             )
           }
         />
+        {withdrawal.createdByUsername && (
+          <DetailRow
+            icon={<UserRound size={16} />}
+            label="Создал"
+            value={withdrawal.createdByUsername}
+          />
+        )}
         {withdrawal.bybitOrderAmountRub != null && (
           <DetailRow
             icon={<ReceiptText size={16} />}
@@ -204,7 +214,7 @@ function EventHistory({ events }: { events: WithdrawalEvent[] }) {
     >
       {events.length === 0 ? (
         <EmptyState
-          title="История пока пуста"
+          title="История пока пустая"
           description="События появятся по мере обработки заявки."
         />
       ) : (
@@ -218,7 +228,10 @@ function EventHistory({ events }: { events: WithdrawalEvent[] }) {
                 </span>
                 <div className="event-content">
                   <strong>{EVENT_TITLES[event.eventType] || 'Событие обработки'}</strong>
-                  <span>{formatDateTime(event.createdAt, true)}</span>
+                  <span>
+                    {formatDateTime(event.createdAt, true)}
+                    {event.actorUsername ? ` · ${event.actorUsername}` : ''}
+                  </span>
                   {event.payloadJson && (
                     <details>
                       <summary>Технические данные</summary>
@@ -236,12 +249,16 @@ function EventHistory({ events }: { events: WithdrawalEvent[] }) {
 
 export function WithdrawalDetailsPage() {
   const params = useParams()
-  const withdrawalId = Number(params.withdrawalId)
-  const detailsQuery = useWithdrawalDetailsQuery(withdrawalId)
+  const withdrawalPublicId = (params.withdrawalPublicId ?? '').toUpperCase()
+  const { selectedWorkspaceId } = useWorkspace()
+  const detailsQuery = useWithdrawalDetailsQuery(
+    selectedWorkspaceId ?? undefined,
+    withdrawalPublicId,
+  )
   const cancelMutation = useCancelWithdrawal()
   const markSeenMutation = useMarkWithdrawalSeen()
   const releaseMutation = useReleaseWithdrawal()
-  const sendMessageMutation = useSendChatMessage(withdrawalId)
+  const sendMessageMutation = useSendChatMessage(selectedWorkspaceId ?? '', withdrawalPublicId)
   const [confirmOpen, setConfirmOpen] = useState(false)
   const [releaseConfirmOpen, setReleaseConfirmOpen] = useState(false)
   const [messageText, setMessageText] = useState('')
@@ -253,10 +270,21 @@ export function WithdrawalDetailsPage() {
     chatEndRef.current?.scrollIntoView({ block: 'end' })
   }, [chatMessages.length])
 
-  if (!Number.isInteger(withdrawalId) || withdrawalId <= 0) {
+  if (!selectedWorkspaceId) {
     return (
       <div className="page">
-        <ErrorState title="Некорректный ID заявки" message="Проверьте адрес страницы." />
+        <ErrorState
+          title="Workspace не выбран"
+          message="Выберите или создайте рабочее пространство перед просмотром заявки."
+        />
+      </div>
+    )
+  }
+
+  if (!PUBLIC_ID_PATTERN.test(withdrawalPublicId)) {
+    return (
+      <div className="page">
+        <ErrorState title="Некорректный public ID заявки" message="Проверьте адрес страницы." />
       </div>
     )
   }
@@ -291,8 +319,11 @@ export function WithdrawalDetailsPage() {
 
   const cancel = async () => {
     try {
-      await cancelMutation.mutateAsync(withdrawal.id)
-      toast.success(`Заявка #${withdrawal.id} отменена`)
+      await cancelMutation.mutateAsync({
+        workspacePublicId: selectedWorkspaceId,
+        withdrawalPublicId,
+      })
+      toast.success(`Заявка ${withdrawal.publicId} отменена`)
       setConfirmOpen(false)
       void detailsQuery.refetch()
     } catch (error) {
@@ -302,7 +333,10 @@ export function WithdrawalDetailsPage() {
 
   const markSeen = async () => {
     try {
-      await markSeenMutation.mutateAsync(withdrawal.id)
+      await markSeenMutation.mutateAsync({
+        workspacePublicId: selectedWorkspaceId,
+        withdrawalPublicId,
+      })
       toast.success('Просмотр завершения подтверждён')
       void detailsQuery.refetch()
     } catch (error) {
@@ -312,8 +346,11 @@ export function WithdrawalDetailsPage() {
 
   const release = async () => {
     try {
-      await releaseMutation.mutateAsync(withdrawal.id)
-      toast.success(`Ордер заявки #${withdrawal.id} отпущен`)
+      await releaseMutation.mutateAsync({
+        workspacePublicId: selectedWorkspaceId,
+        withdrawalPublicId,
+      })
+      toast.success(`Ордер заявки ${withdrawal.publicId} отпущен`)
       setReleaseConfirmOpen(false)
       void detailsQuery.refetch()
     } catch (error) {
@@ -346,7 +383,7 @@ export function WithdrawalDetailsPage() {
         <div className="details-hero">
           <div>
             <div className="details-hero__label">
-              Заявка #{withdrawal.id}
+              Заявка <span className="mono">{withdrawal.publicId}</span>
               {withdrawal.attentionRequired && (
                 <Badge tone="warning">
                   <TriangleAlert size={13} /> Требует внимания
@@ -444,19 +481,19 @@ export function WithdrawalDetailsPage() {
                         </div>
                         <div>
                           <span>Получатель</span>
-                          <strong>{check.parsedRecipientName || '—'}</strong>
+                          <strong>{check.parsedRecipientName || '-'}</strong>
                         </div>
                         <div>
                           <span>Телефон</span>
                           <strong>
                             {check.parsedRecipientPhone
                               ? formatPhone(check.parsedRecipientPhone)
-                              : '—'}
+                              : '-'}
                           </strong>
                         </div>
                         <div>
                           <span>Банк</span>
-                          <strong>{check.parsedRecipientBank || '—'}</strong>
+                          <strong>{check.parsedRecipientBank || '-'}</strong>
                         </div>
                       </div>
                       {check.verificationError && (
@@ -508,18 +545,6 @@ export function WithdrawalDetailsPage() {
                           <span>{formatDateTime(message.createdAt, true)}</span>
                         </div>
                         <p>{message.messageText}</p>
-                        {message.status !== 'SENT' && (
-                          <span
-                            className={
-                              message.status === 'FAILED'
-                                ? 'chat-message__state is-error'
-                                : 'chat-message__state'
-                            }
-                          >
-                            {message.status === 'FAILED' ? 'Ошибка отправки' : 'Отправляется'}
-                          </span>
-                        )}
-                        {message.error && <small className="text-danger">{message.error}</small>}
                       </article>
                     ),
                   )
@@ -580,7 +605,11 @@ export function WithdrawalDetailsPage() {
             </header>
             <iframe
               title={openedReceipt.pdfFilename || 'PDF-чек'}
-              src={withdrawalApi.getReceiptPdfUrl(withdrawal.id, openedReceipt.id)}
+              src={withdrawalApi.getReceiptPdfUrl(
+                selectedWorkspaceId,
+                withdrawalPublicId,
+                openedReceipt.id,
+              )}
             />
           </section>
         </div>
@@ -592,7 +621,7 @@ export function WithdrawalDetailsPage() {
         description={
           <p>
             Backend перепроверит наличие ордера перед отменой заявки{' '}
-            <strong>#{withdrawal.id}</strong>.
+            <strong>{withdrawal.publicId}</strong>.
           </p>
         }
         confirmLabel="Отменить заявку"
