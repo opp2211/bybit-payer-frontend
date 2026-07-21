@@ -154,6 +154,7 @@ export function ActiveWithdrawals({ data = [], loading, error, onRetry }: Props)
                         <span>
                           {formatPhone(withdrawal.recipientPhone)} · {withdrawal.recipientBankTitle}
                         </span>
+                        <span className="text-muted">{withdrawal.payerBankTypeTitle}</span>
                       </div>
                     </td>
                     <td data-label="Статус">

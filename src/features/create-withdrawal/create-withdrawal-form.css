@@ -20,6 +20,75 @@
   font-weight: 700;
 }
 
+.payer-bank-field {
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.payer-bank-field legend {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0;
+  color: #344054;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.payer-bank-toggle {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+  padding: 4px;
+  border: 1px solid var(--color-border-strong);
+  border-radius: 10px;
+  background: var(--color-surface-subtle);
+}
+
+.payer-bank-toggle__option {
+  position: relative;
+  min-width: 0;
+}
+
+.payer-bank-toggle__option input {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.payer-bank-toggle__option span {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 38px;
+  padding: 7px 8px;
+  border: 1px solid transparent;
+  border-radius: 7px;
+  color: var(--color-text-secondary);
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.2;
+  text-align: center;
+  transition:
+    border-color 150ms ease,
+    background 150ms ease,
+    color 150ms ease,
+    box-shadow 150ms ease;
+}
+
+.payer-bank-toggle__option input:checked + span {
+  border-color: rgb(49 87 213 / 28%);
+  background: var(--color-surface);
+  box-shadow: 0 1px 2px rgb(16 24 40 / 8%);
+  color: var(--color-primary);
+}
+
+.payer-bank-toggle__option input:focus-visible + span {
+  box-shadow: 0 0 0 3px rgb(49 87 213 / 14%);
+}
+
 .input-shell {
   display: flex;
   align-items: center;
@@ -157,5 +226,11 @@
 @media (max-width: 1099px) {
   .create-form-card {
     position: static;
+  }
+}
+
+@media (max-width: 520px) {
+  .payer-bank-toggle {
+    grid-template-columns: 1fr;
   }
 }

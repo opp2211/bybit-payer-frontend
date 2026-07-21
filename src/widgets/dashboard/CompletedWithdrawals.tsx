@@ -109,6 +109,7 @@ export function CompletedWithdrawals({ data = [], loading, error, onRetry }: Pro
                     <div className="cell-primary">
                       <strong>{withdrawal.recipientName}</strong>
                       <span>{formatPhone(withdrawal.recipientPhone)}</span>
+                      <span className="text-muted">{withdrawal.payerBankTypeTitle}</span>
                     </div>
                   </td>
                   <td data-label="Bybit order">

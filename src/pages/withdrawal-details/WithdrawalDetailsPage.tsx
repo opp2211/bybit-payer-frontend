@@ -124,8 +124,13 @@ function WithdrawalSummary({ withdrawal }: { withdrawal: Withdrawal }) {
         />
         <DetailRow
           icon={<Landmark size={16} />}
-          label="Банк"
+          label="Банк получателя"
           value={withdrawal.recipientBankTitle}
+        />
+        <DetailRow
+          icon={<Landmark size={16} />}
+          label="Банк отправителя"
+          value={withdrawal.payerBankTypeTitle}
         />
         <DetailRow
           icon={<WalletCards size={16} />}

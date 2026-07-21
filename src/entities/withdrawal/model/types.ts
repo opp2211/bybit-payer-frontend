@@ -10,6 +10,8 @@ export type WithdrawalStatus =
 
 export type RecipientBank = string
 
+export type PayerBankType = 'TBANK_AUTO' | 'SBERBANK' | 'ANY_BANK'
+
 export type Withdrawal = {
   id: number
   publicId: string
@@ -18,6 +20,9 @@ export type Withdrawal = {
   recipientBank: RecipientBank
   recipientBankTitle: string
   recipientName: string
+  payerBankType: PayerBankType
+  payerBankTypeTitle: string
+  autoReleaseEnabled: boolean
   status: WithdrawalStatus
   statusTitle: string
   attentionRequired: boolean
@@ -102,6 +107,7 @@ export type CreateWithdrawalRequest = {
   recipientPhone: string
   recipientBank: RecipientBank
   recipientName: string
+  payerBankType: PayerBankType
 }
 
 export type SendChatMessageRequest = {

@@ -1,5 +1,5 @@
 import { zodResolver } from '@hookform/resolvers/zod'
-import { Banknote, Building2, Info, Phone, Send, UserRound } from 'lucide-react'
+import { Banknote, Building2, Info, Landmark, Phone, Send, UserRound } from 'lucide-react'
 import { useForm } from 'react-hook-form'
 import { toast } from 'sonner'
 import { z } from 'zod'
@@ -11,6 +11,14 @@ import { getErrorMessage } from '@/shared/lib/errors'
 import { formatNumber, formatRub } from '@/shared/lib/formatters'
 import { Button } from '@/shared/ui/Button'
 import { Card } from '@/shared/ui/Card'
+
+const payerBankTypeValues = ['TBANK_AUTO', 'SBERBANK', 'ANY_BANK'] as const
+
+const payerBankTypeOptions = [
+  { value: 'TBANK_AUTO', label: 'Т-банк (автоподтверждение)' },
+  { value: 'SBERBANK', label: 'Сбербанк' },
+  { value: 'ANY_BANK', label: 'Любой банк' },
+] satisfies Array<{ value: (typeof payerBankTypeValues)[number]; label: string }>
 
 const phoneIsValid = (value: string) => {
   const digits = value.replace(/\D/g, '')
@@ -30,6 +38,7 @@ const schema = z.object({
     .refine(phoneIsValid, 'Введите российский номер из 11 цифр'),
   recipientBank: z.string().trim().min(1, 'Выберите банк'),
   recipientName: z.string().trim().min(2, 'Введите имя получателя').max(120, 'Имя слишком длинное'),
+  payerBankType: z.enum(payerBankTypeValues),
 })
 
 type FormValues = z.infer<typeof schema>
@@ -53,6 +62,7 @@ export function CreateWithdrawalForm({ workspacePublicId }: Props) {
       recipientPhone: '',
       recipientBank: '',
       recipientName: '',
+      payerBankType: 'TBANK_AUTO',
     },
   })
 
@@ -201,6 +211,24 @@ export function CreateWithdrawalForm({ workspacePublicId }: Props) {
             <span className="form-field__hint">Список загружается с backend</span>
           )}
         </div>
+
+        <fieldset className="form-field payer-bank-field">
+          <legend>
+            <Landmark size={14} />
+            Банк отправителя
+          </legend>
+          <div className="payer-bank-toggle" role="radiogroup" aria-label="Банк отправителя">
+            {payerBankTypeOptions.map((option) => (
+              <label key={option.value} className="payer-bank-toggle__option">
+                <input type="radio" value={option.value} {...register('payerBankType')} />
+                <span>{option.label}</span>
+              </label>
+            ))}
+          </div>
+          {errors.payerBankType && (
+            <span className="form-field__error">{errors.payerBankType.message}</span>
+          )}
+        </fieldset>
 
         <div className="form-note">
           <Info size={16} />
