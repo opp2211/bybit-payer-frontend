@@ -3,15 +3,27 @@
   top: calc(var(--header-height) + 20px);
 }
 
+.create-form-card .card__header {
+  padding: 18px 20px;
+}
+
+.create-form-card .card__icon {
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-sm);
+  background: var(--color-info-soft);
+  color: var(--color-info);
+}
+
 .create-form {
   display: grid;
-  gap: 17px;
-  padding: 22px;
+  gap: 16px;
+  padding: 20px;
 }
 
 .form-field {
   display: grid;
-  gap: 7px;
+  gap: 8px;
 }
 
 .form-field label {
@@ -30,20 +42,24 @@
   display: flex;
   align-items: center;
   gap: 6px;
-  padding: 0;
+  padding: 0 0 8px;
   color: #344054;
   font-size: 12px;
   font-weight: 700;
 }
 
+.payer-bank-field legend svg {
+  color: var(--color-primary);
+}
+
 .payer-bank-toggle {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 6px;
-  padding: 4px;
+  gap: 4px;
+  padding: 3px;
   border: 1px solid var(--color-border-strong);
-  border-radius: 10px;
-  background: var(--color-surface-subtle);
+  border-radius: var(--radius-sm);
+  background: #f3f6fb;
 }
 
 .payer-bank-toggle__option {
@@ -62,15 +78,17 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  min-height: 38px;
-  padding: 7px 8px;
+  gap: 6px;
+  min-height: 40px;
+  padding: 7px 6px;
   border: 1px solid transparent;
-  border-radius: 7px;
-  color: var(--color-text-secondary);
-  font-size: 12px;
+  border-radius: 6px;
+  color: #556274;
+  font-size: 11.5px;
   font-weight: 700;
-  line-height: 1.2;
+  line-height: 1.15;
   text-align: center;
+  overflow-wrap: anywhere;
   transition:
     border-color 150ms ease,
     background 150ms ease,
@@ -78,25 +96,47 @@
     box-shadow 150ms ease;
 }
 
+.payer-bank-toggle__option span::before {
+  width: 7px;
+  height: 7px;
+  flex: 0 0 auto;
+  border: 1.5px solid #a6b0c0;
+  border-radius: 50%;
+  content: '';
+  transition:
+    background 150ms ease,
+    border-color 150ms ease;
+}
+
+.payer-bank-toggle__option:hover span {
+  background: rgb(255 255 255 / 68%);
+  color: var(--color-text);
+}
+
 .payer-bank-toggle__option input:checked + span {
-  border-color: rgb(49 87 213 / 28%);
+  border-color: rgb(49 87 213 / 34%);
   background: var(--color-surface);
-  box-shadow: 0 1px 2px rgb(16 24 40 / 8%);
-  color: var(--color-primary);
+  box-shadow: 0 1px 3px rgb(16 24 40 / 10%);
+  color: var(--color-text);
+}
+
+.payer-bank-toggle__option input:checked + span::before {
+  border-color: var(--color-primary);
+  background: var(--color-primary);
 }
 
 .payer-bank-toggle__option input:focus-visible + span {
-  box-shadow: 0 0 0 3px rgb(49 87 213 / 14%);
+  box-shadow: 0 0 0 3px rgb(49 87 213 / 16%);
 }
 
 .input-shell {
   display: flex;
   align-items: center;
   gap: 10px;
-  min-height: 45px;
+  min-height: 46px;
   padding: 0 13px;
   border: 1px solid var(--color-border-strong);
-  border-radius: 10px;
+  border-radius: var(--radius-sm);
   background: var(--color-surface);
   color: var(--color-text-muted);
   transition:
@@ -104,9 +144,13 @@
     box-shadow 150ms ease;
 }
 
+.input-shell:hover {
+  border-color: #bfc8d6;
+}
+
 .input-shell:focus-within {
   border-color: var(--color-primary);
-  box-shadow: 0 0 0 3px rgb(49 87 213 / 10%);
+  box-shadow: 0 0 0 3px rgb(49 87 213 / 11%);
 }
 
 .input-shell:has([aria-invalid='true']) {
@@ -128,6 +172,16 @@
 .input-shell input::placeholder {
   color: #b0b8c5;
   font-weight: 400;
+}
+
+.input-shell svg {
+  flex: 0 0 auto;
+  color: #7a869a;
+  transition: color 150ms ease;
+}
+
+.input-shell:focus-within svg {
+  color: var(--color-primary);
 }
 
 .input-shell input[type='number'] {
@@ -163,6 +217,7 @@
   color: var(--color-text-muted);
   font-size: 11px;
   font-weight: 750;
+  letter-spacing: 0;
 }
 
 .form-field__hint,
@@ -192,8 +247,9 @@
   display: flex;
   align-items: flex-start;
   gap: 8px;
-  padding: 11px 12px;
-  border-radius: 10px;
+  padding: 12px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
   background: var(--color-surface-subtle);
   color: var(--color-text-secondary);
   font-size: 12px;
@@ -220,7 +276,7 @@
 
 .create-form__submit {
   width: 100%;
-  margin-top: 1px;
+  margin-top: 2px;
 }
 
 @media (max-width: 1099px) {
@@ -232,5 +288,9 @@
 @media (max-width: 520px) {
   .payer-bank-toggle {
     grid-template-columns: 1fr;
+  }
+
+  .payer-bank-toggle__option span {
+    min-height: 36px;
   }
 }

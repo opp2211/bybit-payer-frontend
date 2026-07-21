@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
 
 import { BybitOrderLink } from '@/entities/bybit-order/ui/BybitOrderLink'
-import type { Withdrawal } from '@/entities/withdrawal/model/types'
+import { getPayerBankTypeTitle, type Withdrawal } from '@/entities/withdrawal/model/types'
 import { OrderAmounts } from '@/entities/withdrawal/ui/OrderAmounts'
 import { useMarkWithdrawalSeen } from '@/features/mark-withdrawal-seen/model/useMarkWithdrawalSeen'
 import { useWorkspace } from '@/features/workspace/model/useWorkspace'
@@ -109,7 +109,9 @@ export function CompletedWithdrawals({ data = [], loading, error, onRetry }: Pro
                     <div className="cell-primary">
                       <strong>{withdrawal.recipientName}</strong>
                       <span>{formatPhone(withdrawal.recipientPhone)}</span>
-                      <span className="text-muted">{withdrawal.payerBankTypeTitle}</span>
+                      <span className="text-muted">
+                        {getPayerBankTypeTitle(withdrawal.payerBankType)}
+                      </span>
                     </div>
                   </td>
                   <td data-label="Bybit order">

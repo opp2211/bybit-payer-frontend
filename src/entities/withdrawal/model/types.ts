@@ -12,6 +12,15 @@ export type RecipientBank = string
 
 export type PayerBankType = 'TBANK_AUTO' | 'SBERBANK' | 'ANY_BANK'
 
+export const payerBankTypeLabels = {
+  TBANK_AUTO: 'Т-банк (авто)',
+  SBERBANK: 'Сбербанк',
+  ANY_BANK: 'Любой банк',
+} satisfies Record<PayerBankType, string>
+
+export const getPayerBankTypeTitle = (payerBankType: PayerBankType) =>
+  payerBankTypeLabels[payerBankType]
+
 export type Withdrawal = {
   id: number
   publicId: string

@@ -25,10 +25,11 @@ import { toast } from 'sonner'
 import { BybitOrderLink } from '@/entities/bybit-order/ui/BybitOrderLink'
 import { withdrawalApi } from '@/entities/withdrawal/api/withdrawal-api'
 import { useWithdrawalDetailsQuery } from '@/entities/withdrawal/model/queries'
-import type {
-  EmailReceiptCheck,
-  Withdrawal,
-  WithdrawalEvent,
+import {
+  getPayerBankTypeTitle,
+  type EmailReceiptCheck,
+  type Withdrawal,
+  type WithdrawalEvent,
 } from '@/entities/withdrawal/model/types'
 import { OrderAmounts } from '@/entities/withdrawal/ui/OrderAmounts'
 import { WithdrawalStatusBadge } from '@/entities/withdrawal/ui/WithdrawalStatusBadge'
@@ -130,7 +131,7 @@ function WithdrawalSummary({ withdrawal }: { withdrawal: Withdrawal }) {
         <DetailRow
           icon={<Landmark size={16} />}
           label="Банк отправителя"
-          value={withdrawal.payerBankTypeTitle}
+          value={getPayerBankTypeTitle(withdrawal.payerBankType)}
         />
         <DetailRow
           icon={<WalletCards size={16} />}

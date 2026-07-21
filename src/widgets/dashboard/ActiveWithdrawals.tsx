@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
 
 import { BybitOrderLink } from '@/entities/bybit-order/ui/BybitOrderLink'
-import type { Withdrawal } from '@/entities/withdrawal/model/types'
+import { getPayerBankTypeTitle, type Withdrawal } from '@/entities/withdrawal/model/types'
 import { OrderAmounts } from '@/entities/withdrawal/ui/OrderAmounts'
 import { WithdrawalStatusBadge } from '@/entities/withdrawal/ui/WithdrawalStatusBadge'
 import { useCancelWithdrawal } from '@/features/cancel-withdrawal/model/useCancelWithdrawal'
@@ -154,7 +154,9 @@ export function ActiveWithdrawals({ data = [], loading, error, onRetry }: Props)
                         <span>
                           {formatPhone(withdrawal.recipientPhone)} · {withdrawal.recipientBankTitle}
                         </span>
-                        <span className="text-muted">{withdrawal.payerBankTypeTitle}</span>
+                        <span className="text-muted">
+                          {getPayerBankTypeTitle(withdrawal.payerBankType)}
+                        </span>
                       </div>
                     </td>
                     <td data-label="Статус">

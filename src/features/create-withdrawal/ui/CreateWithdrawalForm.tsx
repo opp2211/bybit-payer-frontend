@@ -6,6 +6,7 @@ import { z } from 'zod'
 
 import { useActiveBanksQuery } from '@/entities/bank/model/queries'
 import { useSystemStatusQuery } from '@/entities/system/model/queries'
+import { payerBankTypeLabels, type PayerBankType } from '@/entities/withdrawal/model/types'
 import { useCreateWithdrawal } from '@/features/create-withdrawal/model/useCreateWithdrawal'
 import { getErrorMessage } from '@/shared/lib/errors'
 import { formatNumber, formatRub } from '@/shared/lib/formatters'
@@ -14,11 +15,10 @@ import { Card } from '@/shared/ui/Card'
 
 const payerBankTypeValues = ['TBANK_AUTO', 'SBERBANK', 'ANY_BANK'] as const
 
-const payerBankTypeOptions = [
-  { value: 'TBANK_AUTO', label: 'Т-банк (автоподтверждение)' },
-  { value: 'SBERBANK', label: 'Сбербанк' },
-  { value: 'ANY_BANK', label: 'Любой банк' },
-] satisfies Array<{ value: (typeof payerBankTypeValues)[number]; label: string }>
+const payerBankTypeOptions = payerBankTypeValues.map((value) => ({
+  value,
+  label: payerBankTypeLabels[value],
+})) satisfies Array<{ value: PayerBankType; label: string }>
 
 const phoneIsValid = (value: string) => {
   const digits = value.replace(/\D/g, '')
@@ -99,13 +99,31 @@ export function CreateWithdrawalForm({ workspacePublicId }: Props) {
   return (
     <Card
       className="create-form-card"
-      title="Новая выплата"
-      description="Создайте заявку в текущем workspace"
+      title="Новая заявка"
+      description="Условия объявления и реквизиты получателя"
       icon={<Send size={17} />}
     >
       <form className="create-form" onSubmit={onSubmit} noValidate>
+        <fieldset className="form-field payer-bank-field">
+          <legend>
+            <Landmark size={14} />
+            Банк отправителя
+          </legend>
+          <div className="payer-bank-toggle" role="radiogroup" aria-label="Банк отправителя">
+            {payerBankTypeOptions.map((option) => (
+              <label key={option.value} className="payer-bank-toggle__option">
+                <input type="radio" value={option.value} {...register('payerBankType')} />
+                <span>{option.label}</span>
+              </label>
+            ))}
+          </div>
+          {errors.payerBankType && (
+            <span className="form-field__error">{errors.payerBankType.message}</span>
+          )}
+        </fieldset>
+
         <div className="form-field">
-          <label htmlFor="amountRub">Сумма выплаты</label>
+          <label htmlFor="amountRub">Сумма</label>
           <div className="input-shell">
             <Banknote size={17} />
             <input
@@ -123,7 +141,7 @@ export function CreateWithdrawalForm({ workspacePublicId }: Props) {
           {errors.amountRub ? (
             <span className="form-field__error">{errors.amountRub.message}</span>
           ) : (
-            <span className="form-field__hint">Текущий диапазон: {rangeText}</span>
+            <span className="form-field__hint">Диапазон объявления: {rangeText}</span>
           )}
         </div>
 
@@ -162,7 +180,7 @@ export function CreateWithdrawalForm({ workspacePublicId }: Props) {
           {errors.recipientName ? (
             <span className="form-field__error">{errors.recipientName.message}</span>
           ) : (
-            <span className="form-field__hint">Имя будет сверено с PDF-чеком</span>
+            <span className="form-field__hint">Как указано в реквизитах получателя</span>
           )}
         </div>
 
@@ -206,29 +224,11 @@ export function CreateWithdrawalForm({ workspacePublicId }: Props) {
           ) : errors.recipientBank ? (
             <span className="form-field__error">{errors.recipientBank.message}</span>
           ) : banks.length === 0 && !banksQuery.isPending ? (
-            <span className="form-field__hint">На backend нет активных банков</span>
+            <span className="form-field__hint">Нет активных банков для выбора</span>
           ) : (
-            <span className="form-field__hint">Список загружается с backend</span>
+            <span className="form-field__hint">Карта или СБП для входящего платежа</span>
           )}
         </div>
-
-        <fieldset className="form-field payer-bank-field">
-          <legend>
-            <Landmark size={14} />
-            Банк отправителя
-          </legend>
-          <div className="payer-bank-toggle" role="radiogroup" aria-label="Банк отправителя">
-            {payerBankTypeOptions.map((option) => (
-              <label key={option.value} className="payer-bank-toggle__option">
-                <input type="radio" value={option.value} {...register('payerBankType')} />
-                <span>{option.label}</span>
-              </label>
-            ))}
-          </div>
-          {errors.payerBankType && (
-            <span className="form-field__error">{errors.payerBankType.message}</span>
-          )}
-        </fieldset>
 
         <div className="form-note">
           <Info size={16} />
