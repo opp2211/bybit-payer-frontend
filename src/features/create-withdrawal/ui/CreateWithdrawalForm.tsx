@@ -62,6 +62,7 @@ const schema = z
       .int('Сумма должна быть целым числом')
       .positive('Сумма должна быть больше нуля'),
     payerBankType: z.enum(payerBankTypeValues),
+    requireSenderFirstParty: z.boolean(),
     withdrawalMethod: z.enum(withdrawalMethodValues),
     thirdPartyTransfer: z.boolean(),
     recipientPhone: z.string().trim(),
@@ -171,12 +172,14 @@ export function CreateWithdrawalForm({ workspacePublicId }: Props) {
       recipientCardTbank: false,
       thirdPartyTransfer: true,
       payerBankType: 'TBANK_AUTO',
+      requireSenderFirstParty: false,
       withdrawalMethod: 'SBP',
     },
   })
 
   const amountRub = useWatch({ control, name: 'amountRub' })
   const payerBankType = useWatch({ control, name: 'payerBankType' })
+  const requireSenderFirstParty = useWatch({ control, name: 'requireSenderFirstParty' })
   const withdrawalMethod = useWatch({ control, name: 'withdrawalMethod' })
   const thirdPartyTransfer = useWatch({ control, name: 'thirdPartyTransfer' })
   const recipientCardTbank = useWatch({ control, name: 'recipientCardTbank' })
@@ -194,6 +197,7 @@ export function CreateWithdrawalForm({ workspacePublicId }: Props) {
     return {
       amountRub: previewAmountRub,
       payerBankType,
+      requireSenderFirstParty: Boolean(requireSenderFirstParty),
       withdrawalMethod,
       thirdPartyTransfer: Boolean(thirdPartyTransfer),
       recipientCardTbank: withdrawalMethod === 'CARD_NUMBER' && Boolean(recipientCardTbank),
@@ -203,7 +207,14 @@ export function CreateWithdrawalForm({ workspacePublicId }: Props) {
       recipientCardNumber: '',
       recipientAccountNumber: '',
     }
-  }, [payerBankType, previewAmountRub, recipientCardTbank, thirdPartyTransfer, withdrawalMethod])
+  }, [
+    payerBankType,
+    previewAmountRub,
+    recipientCardTbank,
+    requireSenderFirstParty,
+    thirdPartyTransfer,
+    withdrawalMethod,
+  ])
   const previewQuery = useWithdrawalAdvertisementPreviewQuery(
     workspacePublicId,
     previewPayload,
@@ -227,6 +238,7 @@ export function CreateWithdrawalForm({ workspacePublicId }: Props) {
       const created = await mutation.mutateAsync({
         amountRub: values.amountRub,
         payerBankType: values.payerBankType,
+        requireSenderFirstParty: values.requireSenderFirstParty,
         withdrawalMethod: values.withdrawalMethod,
         thirdPartyTransfer: values.thirdPartyTransfer,
         recipientCardTbank: isCard ? values.recipientCardTbank : false,
@@ -283,6 +295,11 @@ export function CreateWithdrawalForm({ workspacePublicId }: Props) {
             <span className="form-field__error">{errors.payerBankType.message}</span>
           )}
         </fieldset>
+
+        <label className="form-checkbox">
+          <input type="checkbox" {...register('requireSenderFirstParty')} />
+          <span>Требовать 1 лицо от отправителя</span>
+        </label>
 
         <div className="form-field">
           <label htmlFor="amountRub">Сумма</label>

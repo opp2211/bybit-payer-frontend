@@ -58,6 +58,7 @@ export type Withdrawal = {
   thirdPartyTransfer?: boolean | null
   payerBankType: PayerBankType
   payerBankTypeTitle: string
+  requireSenderFirstParty?: boolean | null
   withdrawalMethod?: WithdrawalMethod | null
   withdrawalMethodTitle?: string | null
   autoReleaseEnabled: boolean
@@ -151,6 +152,7 @@ export type CreateWithdrawalRequest = {
   recipientCardTbank: boolean
   thirdPartyTransfer: boolean
   payerBankType: PayerBankType
+  requireSenderFirstParty: boolean
   withdrawalMethod: WithdrawalMethod
 }
 
