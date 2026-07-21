@@ -1,22 +1,22 @@
 const STORAGE_KEY = 'flowpay:completion-sounds'
 
-function getPlayedIds(): Set<number> {
+function getPlayedIds(): Set<string> {
   try {
-    return new Set<number>(JSON.parse(sessionStorage.getItem(STORAGE_KEY) ?? '[]'))
+    return new Set<string>(JSON.parse(sessionStorage.getItem(STORAGE_KEY) ?? '[]'))
   } catch {
     return new Set()
   }
 }
 
-function persistPlayedIds(ids: Set<number>) {
+function persistPlayedIds(ids: Set<string>) {
   sessionStorage.setItem(STORAGE_KEY, JSON.stringify([...ids]))
 }
 
-export function wasCompletionSoundPlayed(id: number): boolean {
+export function wasCompletionSoundPlayed(id: string): boolean {
   return getPlayedIds().has(id)
 }
 
-export function markCompletionSoundPlayed(id: number) {
+export function markCompletionSoundPlayed(id: string) {
   const ids = getPlayedIds()
   ids.add(id)
   persistPlayedIds(ids)

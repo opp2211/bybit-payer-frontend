@@ -50,6 +50,20 @@ export function formatPhone(value: string): string {
   return `+7 ${normalized.slice(1, 4)} ${normalized.slice(4, 7)}-${normalized.slice(7, 9)}-${normalized.slice(9)}`
 }
 
+export function formatCardNumber(value: string | null | undefined): string {
+  if (!value) return '—'
+  const digits = value.replace(/\D/g, '')
+  if (digits.length !== 16) return value
+  return digits.match(/.{1,4}/g)?.join(' ') ?? value
+}
+
+export function formatAccountNumber(value: string | null | undefined): string {
+  if (!value) return '—'
+  const digits = value.replace(/\D/g, '')
+  if (digits.length !== 20) return value
+  return digits.match(/.{1,4}/g)?.join(' ') ?? value
+}
+
 export function compactId(value: string | null | undefined): string {
   if (!value) return '—'
   if (value.length <= 14) return value

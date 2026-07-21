@@ -10,13 +10,58 @@ export type WithdrawalStatus =
 
 export type RecipientBank = string
 
+export type PayerBankType = 'TBANK_AUTO' | 'SBERBANK' | 'ANY_BANK'
+export type WithdrawalMethod = 'SBP' | 'CARD_NUMBER' | 'ACCOUNT_NUMBER'
+
+export const payerBankTypeLabels = {
+  TBANK_AUTO: 'Т-банк (авто)',
+  SBERBANK: 'Сбербанк',
+  ANY_BANK: 'Любой банк',
+} satisfies Record<PayerBankType, string>
+
+export const getPayerBankTypeTitle = (payerBankType: PayerBankType) =>
+  payerBankTypeLabels[payerBankType]
+
+export const withdrawalMethodLabels = {
+  SBP: 'СБП',
+  CARD_NUMBER: 'По номеру карты',
+  ACCOUNT_NUMBER: 'По номеру счета',
+} satisfies Record<WithdrawalMethod, string>
+
+export const DEFAULT_WITHDRAWAL_METHOD: WithdrawalMethod = 'SBP'
+
+export const getEffectiveWithdrawalMethod = (
+  withdrawalMethod: WithdrawalMethod | null | undefined,
+): WithdrawalMethod => withdrawalMethod ?? DEFAULT_WITHDRAWAL_METHOD
+
+export const getWithdrawalMethodTitle = (withdrawalMethod: WithdrawalMethod | null | undefined) =>
+  withdrawalMethodLabels[getEffectiveWithdrawalMethod(withdrawalMethod)]
+
+export const getEffectiveThirdPartyTransfer = (
+  thirdPartyTransfer: boolean | null | undefined,
+): boolean => thirdPartyTransfer ?? true
+
+export const getTransferPartyTitle = (thirdPartyTransfer: boolean | null | undefined) =>
+  getEffectiveThirdPartyTransfer(thirdPartyTransfer) ? '3 лицо' : '1 лицо'
+
 export type Withdrawal = {
   id: number
+  publicId: string
   amountRub: number
-  recipientPhone: string
-  recipientBank: RecipientBank
-  recipientBankTitle: string
-  recipientName: string
+  recipientPhone: string | null
+  recipientBank: RecipientBank | null
+  recipientBankTitle: string | null
+  recipientName: string | null
+  recipientCardNumber: string | null
+  recipientAccountNumber: string | null
+  recipientCardTbank?: boolean | null
+  thirdPartyTransfer?: boolean | null
+  payerBankType: PayerBankType
+  payerBankTypeTitle: string
+  requireSenderFirstParty?: boolean | null
+  withdrawalMethod?: WithdrawalMethod | null
+  withdrawalMethodTitle?: string | null
+  autoReleaseEnabled: boolean
   status: WithdrawalStatus
   statusTitle: string
   attentionRequired: boolean
@@ -39,6 +84,7 @@ export type Withdrawal = {
   cancelledAt: string | null
   lastError: string | null
   lastWarning: string | null
+  createdByUsername: string | null
   canCancel: boolean
   canRelease: boolean
 }
@@ -48,6 +94,8 @@ export type WithdrawalEvent = {
   eventType: string
   message: string
   payloadJson: string | null
+  actorType: 'SYSTEM' | 'USER'
+  actorUsername: string | null
   createdAt: string
 }
 
@@ -78,6 +126,7 @@ export type EmailReceiptCheck = {
   parsedRecipientPhone: string | null
   parsedRecipientBank: string | null
   parsedRecipientName: string | null
+  parsedRecipientCard: string | null
   parsedOperationDate: string | null
   parsedOperationId: string | null
   parsedReceiptNumber: string | null
@@ -98,6 +147,21 @@ export type CreateWithdrawalRequest = {
   recipientPhone: string
   recipientBank: RecipientBank
   recipientName: string
+  recipientCardNumber: string
+  recipientAccountNumber: string
+  recipientCardTbank: boolean
+  thirdPartyTransfer: boolean
+  payerBankType: PayerBankType
+  requireSenderFirstParty: boolean
+  withdrawalMethod: WithdrawalMethod
+}
+
+export type WithdrawalAdvertisementPreview = {
+  rate: number | null
+  minRub: number
+  maxRub: number
+  quantityUsdt: number | null
+  description: string
 }
 
 export type SendChatMessageRequest = {

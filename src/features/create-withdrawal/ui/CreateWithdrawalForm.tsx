@@ -1,16 +1,51 @@
 import { zodResolver } from '@hookform/resolvers/zod'
-import { Banknote, Building2, Info, Phone, Send, UserRound } from 'lucide-react'
-import { useForm } from 'react-hook-form'
+import {
+  Banknote,
+  Building2,
+  CreditCard,
+  FileText,
+  Hash,
+  Info,
+  Landmark,
+  Phone,
+  Send,
+  UserRound,
+} from 'lucide-react'
+import { useEffect, useMemo } from 'react'
+import { useForm, useWatch, type UseFormRegister } from 'react-hook-form'
 import { toast } from 'sonner'
 import { z } from 'zod'
 
 import { useActiveBanksQuery } from '@/entities/bank/model/queries'
 import { useSystemStatusQuery } from '@/entities/system/model/queries'
+import { useWithdrawalAdvertisementPreviewQuery } from '@/entities/withdrawal/model/queries'
+import {
+  payerBankTypeLabels,
+  withdrawalMethodLabels,
+  type CreateWithdrawalRequest,
+  type PayerBankType,
+  type WithdrawalAdvertisementPreview,
+  type WithdrawalMethod,
+} from '@/entities/withdrawal/model/types'
 import { useCreateWithdrawal } from '@/features/create-withdrawal/model/useCreateWithdrawal'
 import { getErrorMessage } from '@/shared/lib/errors'
 import { formatNumber, formatRub } from '@/shared/lib/formatters'
 import { Button } from '@/shared/ui/Button'
 import { Card } from '@/shared/ui/Card'
+
+const payerBankTypeValues = ['TBANK_AUTO', 'SBERBANK', 'ANY_BANK'] as const
+const withdrawalMethodValues = ['SBP', 'CARD_NUMBER', 'ACCOUNT_NUMBER'] as const
+
+const payerBankTypeOptions = payerBankTypeValues.map((value) => ({
+  value,
+  label: payerBankTypeLabels[value],
+})) satisfies Array<{ value: PayerBankType; label: string }>
+
+const withdrawalMethodOptionsByPayerBank: Record<PayerBankType, readonly WithdrawalMethod[]> = {
+  TBANK_AUTO: ['SBP', 'CARD_NUMBER'],
+  SBERBANK: ['ACCOUNT_NUMBER'],
+  ANY_BANK: ['SBP'],
+}
 
 const phoneIsValid = (value: string) => {
   const digits = value.replace(/\D/g, '')
@@ -18,30 +53,113 @@ const phoneIsValid = (value: string) => {
   return /^7\d{10}$/.test(normalized)
 }
 
-const schema = z.object({
-  amountRub: z
-    .number({ error: 'Введите сумму' })
-    .int('Сумма должна быть целым числом')
-    .positive('Сумма должна быть больше нуля'),
-  recipientPhone: z
-    .string()
-    .trim()
-    .min(1, 'Введите номер телефона')
-    .refine(phoneIsValid, 'Введите российский номер из 11 цифр'),
-  recipientBank: z.string().trim().min(1, 'Выберите банк'),
-  recipientName: z.string().trim().min(2, 'Введите имя получателя').max(120, 'Имя слишком длинное'),
-})
+const digitsOnly = (value: string) => value.replace(/\D/g, '')
+
+const schema = z
+  .object({
+    amountRub: z
+      .number({ error: 'Введите сумму' })
+      .int('Сумма должна быть целым числом')
+      .positive('Сумма должна быть больше нуля'),
+    payerBankType: z.enum(payerBankTypeValues),
+    requireSenderFirstParty: z.boolean(),
+    withdrawalMethod: z.enum(withdrawalMethodValues),
+    thirdPartyTransfer: z.boolean(),
+    recipientPhone: z.string().trim(),
+    recipientBank: z.string().trim(),
+    recipientName: z.string().trim().max(120, 'Имя слишком длинное'),
+    recipientCardNumber: z.string().trim(),
+    recipientAccountNumber: z.string().trim(),
+    recipientCardTbank: z.boolean(),
+  })
+  .superRefine((values, ctx) => {
+    const allowedMethods = withdrawalMethodOptionsByPayerBank[values.payerBankType]
+    if (!allowedMethods.includes(values.withdrawalMethod)) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['withdrawalMethod'],
+        message: 'Метод недоступен для выбранного банка отправителя',
+      })
+      return
+    }
+
+    if (values.withdrawalMethod === 'SBP') {
+      if (!values.recipientPhone) {
+        ctx.addIssue({
+          code: 'custom',
+          path: ['recipientPhone'],
+          message: 'Введите номер телефона',
+        })
+      } else if (!phoneIsValid(values.recipientPhone)) {
+        ctx.addIssue({
+          code: 'custom',
+          path: ['recipientPhone'],
+          message: 'Введите российский номер из 11 цифр',
+        })
+      }
+      if (!values.recipientBank) {
+        ctx.addIssue({ code: 'custom', path: ['recipientBank'], message: 'Выберите банк' })
+      }
+      if (values.recipientName.length < 2) {
+        ctx.addIssue({
+          code: 'custom',
+          path: ['recipientName'],
+          message: 'Введите имя получателя',
+        })
+      }
+      return
+    }
+
+    if (values.withdrawalMethod === 'CARD_NUMBER') {
+      if (digitsOnly(values.recipientCardNumber).length !== 16) {
+        ctx.addIssue({
+          code: 'custom',
+          path: ['recipientCardNumber'],
+          message: 'Введите 16 цифр номера карты',
+        })
+      }
+      if (values.recipientCardTbank && values.recipientName.length < 2) {
+        ctx.addIssue({
+          code: 'custom',
+          path: ['recipientName'],
+          message: 'Введите имя получателя',
+        })
+      }
+      return
+    }
+
+    if (digitsOnly(values.recipientAccountNumber).length !== 20) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['recipientAccountNumber'],
+        message: 'Введите 20 цифр номера счета',
+      })
+    }
+    if (values.recipientName.length < 2) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['recipientName'],
+        message: 'Введите имя получателя',
+      })
+    }
+  })
 
 type FormValues = z.infer<typeof schema>
 
-export function CreateWithdrawalForm() {
-  const mutation = useCreateWithdrawal()
+type Props = {
+  workspacePublicId: string
+}
+
+export function CreateWithdrawalForm({ workspacePublicId }: Props) {
+  const mutation = useCreateWithdrawal(workspacePublicId)
   const banksQuery = useActiveBanksQuery()
-  const systemQuery = useSystemStatusQuery()
+  const systemQuery = useSystemStatusQuery(workspacePublicId)
   const {
     register,
     handleSubmit,
     reset,
+    setValue,
+    control,
     formState: { errors },
   } = useForm<FormValues>({
     resolver: zodResolver(schema),
@@ -49,21 +167,92 @@ export function CreateWithdrawalForm() {
       recipientPhone: '',
       recipientBank: '',
       recipientName: '',
+      recipientCardNumber: '',
+      recipientAccountNumber: '',
+      recipientCardTbank: false,
+      thirdPartyTransfer: true,
+      payerBankType: 'TBANK_AUTO',
+      requireSenderFirstParty: false,
+      withdrawalMethod: 'SBP',
     },
   })
 
+  const amountRub = useWatch({ control, name: 'amountRub' })
+  const payerBankType = useWatch({ control, name: 'payerBankType' })
+  const requireSenderFirstParty = useWatch({ control, name: 'requireSenderFirstParty' })
+  const withdrawalMethod = useWatch({ control, name: 'withdrawalMethod' })
+  const thirdPartyTransfer = useWatch({ control, name: 'thirdPartyTransfer' })
+  const recipientCardTbank = useWatch({ control, name: 'recipientCardTbank' })
+  const withdrawalMethodOptions = withdrawalMethodOptionsByPayerBank[payerBankType]
+  const methodLocked = withdrawalMethodOptions.length === 1
   const banks = banksQuery.data ?? []
   const banksUnavailable = banksQuery.isPending || banksQuery.isError || banks.length === 0
+  const requiresRecipientBank = withdrawalMethod === 'SBP'
+  const status = systemQuery.data
+  const previewAmountRub =
+    typeof amountRub === 'number' && Number.isInteger(amountRub) && amountRub > 0 ? amountRub : null
+  const previewPayload = useMemo<CreateWithdrawalRequest | null>(() => {
+    if (previewAmountRub == null) return null
+
+    return {
+      amountRub: previewAmountRub,
+      payerBankType,
+      requireSenderFirstParty: Boolean(requireSenderFirstParty),
+      withdrawalMethod,
+      thirdPartyTransfer: Boolean(thirdPartyTransfer),
+      recipientCardTbank: withdrawalMethod === 'CARD_NUMBER' && Boolean(recipientCardTbank),
+      recipientPhone: '',
+      recipientBank: '',
+      recipientName: '',
+      recipientCardNumber: '',
+      recipientAccountNumber: '',
+    }
+  }, [
+    payerBankType,
+    previewAmountRub,
+    recipientCardTbank,
+    requireSenderFirstParty,
+    thirdPartyTransfer,
+    withdrawalMethod,
+  ])
+  const previewQuery = useWithdrawalAdvertisementPreviewQuery(
+    workspacePublicId,
+    previewPayload,
+    status?.currentRate,
+  )
+
+  useEffect(() => {
+    if (!withdrawalMethodOptions.includes(withdrawalMethod)) {
+      setValue('withdrawalMethod', withdrawalMethodOptions[0], {
+        shouldDirty: true,
+        shouldValidate: true,
+      })
+    }
+  }, [setValue, withdrawalMethod, withdrawalMethodOptions])
 
   const onSubmit = handleSubmit(async (values) => {
     try {
+      const isSbp = values.withdrawalMethod === 'SBP'
+      const isCard = values.withdrawalMethod === 'CARD_NUMBER'
+      const isAccount = values.withdrawalMethod === 'ACCOUNT_NUMBER'
       const created = await mutation.mutateAsync({
-        ...values,
-        recipientName: values.recipientName.trim(),
-        recipientPhone: values.recipientPhone.trim(),
+        amountRub: values.amountRub,
+        payerBankType: values.payerBankType,
+        requireSenderFirstParty: values.requireSenderFirstParty,
+        withdrawalMethod: values.withdrawalMethod,
+        thirdPartyTransfer: values.thirdPartyTransfer,
+        recipientCardTbank: isCard ? values.recipientCardTbank : false,
+        recipientPhone: isSbp ? values.recipientPhone.trim() : '',
+        recipientBank: isSbp ? values.recipientBank : '',
+        recipientName:
+          isSbp || isAccount || (isCard && values.recipientCardTbank)
+            ? values.recipientName.trim()
+            : '',
+        recipientCardNumber: isCard ? digitsOnly(values.recipientCardNumber) : '',
+        recipientAccountNumber: isAccount ? digitsOnly(values.recipientAccountNumber) : '',
       })
       reset()
-      toast.success(`Заявка #${created.id} создана`, {
+      toast.success(`Заявка ${created.publicId} создана`, {
         description:
           created.status === 'QUEUED'
             ? 'Заявка добавлена в очередь.'
@@ -76,22 +265,44 @@ export function CreateWithdrawalForm() {
     }
   })
 
-  const status = systemQuery.data
   const rangeText =
     status?.currentMinRub != null && status.currentMaxRub != null
-      ? `${formatRub(status.currentMinRub)} — ${formatRub(status.currentMaxRub)}`
-      : 'рассчитается после синхронизации'
+      ? `${formatRub(status.currentMinRub)} - ${formatRub(status.currentMaxRub)}`
+      : 'рассчитывается после синхронизации'
 
   return (
     <Card
       className="create-form-card"
-      title="Новая выплата"
-      description="Создайте заявку и отслеживайте её обработку"
+      title="Новая заявка"
+      description="Условия объявления и реквизиты получателя"
       icon={<Send size={17} />}
     >
       <form className="create-form" onSubmit={onSubmit} noValidate>
+        <fieldset className="form-field payer-bank-field">
+          <legend>
+            <Landmark size={14} />
+            Банк отправителя
+          </legend>
+          <div className="payer-bank-toggle" role="radiogroup" aria-label="Банк отправителя">
+            {payerBankTypeOptions.map((option) => (
+              <label key={option.value} className="payer-bank-toggle__option">
+                <input type="radio" value={option.value} {...register('payerBankType')} />
+                <span>{option.label}</span>
+              </label>
+            ))}
+          </div>
+          {errors.payerBankType && (
+            <span className="form-field__error">{errors.payerBankType.message}</span>
+          )}
+        </fieldset>
+
+        <label className="form-checkbox">
+          <input type="checkbox" {...register('requireSenderFirstParty')} />
+          <span>Требовать 1 лицо от отправителя</span>
+        </label>
+
         <div className="form-field">
-          <label htmlFor="amountRub">Сумма выплаты</label>
+          <label htmlFor="amountRub">Сумма</label>
           <div className="input-shell">
             <Banknote size={17} />
             <input
@@ -100,7 +311,7 @@ export function CreateWithdrawalForm() {
               min="1"
               step="1"
               inputMode="numeric"
-              placeholder="10 000"
+              placeholder="10000"
               aria-invalid={Boolean(errors.amountRub)}
               {...register('amountRub', { valueAsNumber: true })}
             />
@@ -109,94 +320,184 @@ export function CreateWithdrawalForm() {
           {errors.amountRub ? (
             <span className="form-field__error">{errors.amountRub.message}</span>
           ) : (
-            <span className="form-field__hint">Текущий диапазон: {rangeText}</span>
+            <span className="form-field__hint">Диапазон объявления: {rangeText}</span>
           )}
         </div>
 
-        <div className="form-field">
-          <label htmlFor="recipientPhone">Телефон получателя</label>
-          <div className="input-shell">
-            <Phone size={17} />
-            <input
-              id="recipientPhone"
-              type="tel"
-              inputMode="tel"
-              autoComplete="tel"
-              placeholder="+7 (919) 121-21-23"
-              aria-invalid={Boolean(errors.recipientPhone)}
-              {...register('recipientPhone')}
+        <fieldset className="form-field payer-bank-field">
+          <legend>
+            <CreditCard size={14} />
+            Метод вывода
+          </legend>
+          <div
+            className="payer-bank-toggle withdrawal-method-toggle"
+            role="radiogroup"
+            aria-label="Метод вывода"
+          >
+            {withdrawalMethodOptions.map((value) => (
+              <label key={value} className="payer-bank-toggle__option">
+                <input
+                  type="radio"
+                  value={value}
+                  disabled={methodLocked}
+                  {...register('withdrawalMethod')}
+                />
+                <span>{withdrawalMethodLabels[value]}</span>
+              </label>
+            ))}
+          </div>
+          {errors.withdrawalMethod && (
+            <span className="form-field__error">{errors.withdrawalMethod.message}</span>
+          )}
+        </fieldset>
+
+        <label className="form-checkbox">
+          <input type="checkbox" {...register('thirdPartyTransfer')} />
+          <span>Перевод на 3 лицо</span>
+        </label>
+
+        {withdrawalMethod === 'SBP' && (
+          <>
+            <div className="form-field">
+              <label htmlFor="recipientPhone">Телефон получателя</label>
+              <div className="input-shell">
+                <Phone size={17} />
+                <input
+                  id="recipientPhone"
+                  type="tel"
+                  inputMode="tel"
+                  autoComplete="tel"
+                  placeholder="+7 (919) 121-21-23"
+                  aria-invalid={Boolean(errors.recipientPhone)}
+                  {...register('recipientPhone')}
+                />
+              </div>
+              {errors.recipientPhone && (
+                <span className="form-field__error">{errors.recipientPhone.message}</span>
+              )}
+            </div>
+
+            <RecipientNameField
+              register={register}
+              error={errors.recipientName?.message}
+              hint="Как указано в реквизитах получателя"
             />
-          </div>
-          {errors.recipientPhone && (
-            <span className="form-field__error">{errors.recipientPhone.message}</span>
-          )}
-        </div>
 
-        <div className="form-field">
-          <label htmlFor="recipientName">Имя получателя</label>
-          <div className="input-shell">
-            <UserRound size={17} />
-            <input
-              id="recipientName"
-              type="text"
-              autoComplete="name"
-              placeholder="Кирилл М."
-              aria-invalid={Boolean(errors.recipientName)}
-              {...register('recipientName')}
+            <div className="form-field">
+              <label htmlFor="recipientBank">Банк получателя</label>
+              <div className="input-shell input-shell--select">
+                <Building2 size={17} />
+                <select
+                  id="recipientBank"
+                  aria-invalid={Boolean(errors.recipientBank)}
+                  disabled={banksUnavailable}
+                  {...register('recipientBank')}
+                >
+                  <option value="">
+                    {banksQuery.isPending
+                      ? 'Загрузка банков...'
+                      : banksQuery.isError
+                        ? 'Не удалось загрузить банки'
+                        : banks.length === 0
+                          ? 'Нет доступных банков'
+                          : 'Выберите банк'}
+                  </option>
+                  {banks.map((bank) => (
+                    <option key={bank.code} value={bank.code}>
+                      {bank.title}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              {banksQuery.isError ? (
+                <span className="form-field__error">
+                  {getErrorMessage(banksQuery.error)}{' '}
+                  <button
+                    type="button"
+                    className="form-field__retry"
+                    onClick={() => void banksQuery.refetch()}
+                  >
+                    Повторить
+                  </button>
+                </span>
+              ) : errors.recipientBank ? (
+                <span className="form-field__error">{errors.recipientBank.message}</span>
+              ) : banks.length === 0 && !banksQuery.isPending ? (
+                <span className="form-field__hint">Нет активных банков для выбора</span>
+              ) : (
+                <span className="form-field__hint">Банк для входящего платежа по СБП</span>
+              )}
+            </div>
+          </>
+        )}
+
+        {withdrawalMethod === 'CARD_NUMBER' && (
+          <>
+            <div className="form-field">
+              <label htmlFor="recipientCardNumber">Номер карты</label>
+              <div className="input-shell">
+                <CreditCard size={17} />
+                <input
+                  id="recipientCardNumber"
+                  type="text"
+                  inputMode="numeric"
+                  autoComplete="cc-number"
+                  placeholder="2200 0000 0000 1234"
+                  aria-invalid={Boolean(errors.recipientCardNumber)}
+                  {...register('recipientCardNumber')}
+                />
+              </div>
+              {errors.recipientCardNumber ? (
+                <span className="form-field__error">{errors.recipientCardNumber.message}</span>
+              ) : (
+                <span className="form-field__hint">Пробелы и дефисы можно вводить свободно</span>
+              )}
+            </div>
+
+            <label className="form-checkbox">
+              <input type="checkbox" {...register('recipientCardTbank')} />
+              <span>Карта Т-банка</span>
+            </label>
+
+            {recipientCardTbank && (
+              <RecipientNameField
+                register={register}
+                error={errors.recipientName?.message}
+                hint="В чеке Т-банка обычно формат «Имя Ф.»"
+              />
+            )}
+          </>
+        )}
+
+        {withdrawalMethod === 'ACCOUNT_NUMBER' && (
+          <>
+            <div className="form-field">
+              <label htmlFor="recipientAccountNumber">Номер счета</label>
+              <div className="input-shell">
+                <Hash size={17} />
+                <input
+                  id="recipientAccountNumber"
+                  type="text"
+                  inputMode="numeric"
+                  placeholder="4081 7810 0999 1000 4312"
+                  aria-invalid={Boolean(errors.recipientAccountNumber)}
+                  {...register('recipientAccountNumber')}
+                />
+              </div>
+              {errors.recipientAccountNumber ? (
+                <span className="form-field__error">{errors.recipientAccountNumber.message}</span>
+              ) : (
+                <span className="form-field__hint">Пробелы и дефисы можно вводить свободно</span>
+              )}
+            </div>
+
+            <RecipientNameField
+              register={register}
+              error={errors.recipientName?.message}
+              hint="Для сверки с переводом Сбер-Сбер"
             />
-          </div>
-          {errors.recipientName ? (
-            <span className="form-field__error">{errors.recipientName.message}</span>
-          ) : (
-            <span className="form-field__hint">Имя будет строго сверено с PDF-чеком</span>
-          )}
-        </div>
-
-        <div className="form-field">
-          <label htmlFor="recipientBank">Банк получателя</label>
-          <div className="input-shell input-shell--select">
-            <Building2 size={17} />
-            <select
-              id="recipientBank"
-              aria-invalid={Boolean(errors.recipientBank)}
-              disabled={banksUnavailable}
-              {...register('recipientBank')}
-            >
-              <option value="">
-                {banksQuery.isPending
-                  ? 'Загрузка банков...'
-                  : banksQuery.isError
-                    ? 'Не удалось загрузить банки'
-                    : banks.length === 0
-                      ? 'Нет доступных банков'
-                      : 'Выберите банк'}
-              </option>
-              {banks.map((bank) => (
-                <option key={bank.code} value={bank.code}>
-                  {bank.title}
-                </option>
-              ))}
-            </select>
-          </div>
-          {banksQuery.isError ? (
-            <span className="form-field__error">
-              {getErrorMessage(banksQuery.error)}{' '}
-              <button
-                type="button"
-                className="form-field__retry"
-                onClick={() => void banksQuery.refetch()}
-              >
-                Повторить
-              </button>
-            </span>
-          ) : errors.recipientBank ? (
-            <span className="form-field__error">{errors.recipientBank.message}</span>
-          ) : banks.length === 0 && !banksQuery.isPending ? (
-            <span className="form-field__hint">На бэкенде нет активных банков</span>
-          ) : (
-            <span className="form-field__hint">Список загружается с бэкенда</span>
-          )}
-        </div>
+          </>
+        )}
 
         <div className="form-note">
           <Info size={16} />
@@ -205,7 +506,7 @@ export function CreateWithdrawalForm() {
               Доступный баланс:{' '}
               <strong>
                 {status?.availableUsdtBalance == null
-                  ? '—'
+                  ? '-'
                   : `${formatNumber(status.availableUsdtBalance)} USDT`}
               </strong>
             </span>
@@ -215,17 +516,124 @@ export function CreateWithdrawalForm() {
           </div>
         </div>
 
+        {previewPayload && (
+          <AdvertisementPreviewBlock
+            error={previewQuery.error}
+            isLoading={previewQuery.isPending}
+            isRefreshing={previewQuery.isFetching && !previewQuery.isPending}
+            preview={previewQuery.data}
+          />
+        )}
+
         <Button
           type="submit"
           size="lg"
           className="create-form__submit"
           loading={mutation.isPending}
-          disabled={banksUnavailable}
+          disabled={requiresRecipientBank && banksUnavailable}
           icon={<Send size={17} />}
         >
           Создать заявку
         </Button>
       </form>
     </Card>
+  )
+}
+
+type RecipientNameFieldProps = {
+  register: UseFormRegister<FormValues>
+  error?: string
+  hint: string
+}
+
+type AdvertisementPreviewBlockProps = {
+  preview?: WithdrawalAdvertisementPreview
+  isLoading: boolean
+  isRefreshing: boolean
+  error: unknown
+}
+
+function AdvertisementPreviewBlock({
+  preview,
+  isLoading,
+  isRefreshing,
+  error,
+}: AdvertisementPreviewBlockProps) {
+  const rateText =
+    preview?.rate == null ? formatNumber(null) : `${formatNumber(preview.rate)} RUB/USDT`
+  const quantityText =
+    preview?.quantityUsdt == null
+      ? formatNumber(null)
+      : `${formatNumber(preview.quantityUsdt)} USDT`
+  const rangeText =
+    preview == null
+      ? formatNumber(null)
+      : `${formatRub(preview.minRub)} - ${formatRub(preview.maxRub)}`
+
+  return (
+    <section className="ad-preview" aria-live="polite">
+      <header className="ad-preview__header">
+        <span>
+          <FileText size={16} />
+          Превью объявления
+        </span>
+        {isRefreshing && <small>Обновляем...</small>}
+      </header>
+
+      {isLoading ? (
+        <p className="ad-preview__state">Формируем превью...</p>
+      ) : error ? (
+        <p className="ad-preview__state ad-preview__state--error">
+          Не удалось сформировать превью: {getErrorMessage(error)}
+        </p>
+      ) : preview ? (
+        <>
+          <dl className="ad-preview__metrics">
+            <div>
+              <dt>Курс</dt>
+              <dd>{rateText}</dd>
+            </div>
+            <div>
+              <dt>Диапазон</dt>
+              <dd>{rangeText}</dd>
+            </div>
+            <div>
+              <dt>Объем USDT</dt>
+              <dd>{quantityText}</dd>
+            </div>
+          </dl>
+          <div className="ad-preview__description">
+            <span>Описание</span>
+            <p>{preview.description}</p>
+          </div>
+        </>
+      ) : (
+        <p className="ad-preview__state">Превью пока недоступно.</p>
+      )}
+    </section>
+  )
+}
+
+function RecipientNameField({ register, error, hint }: RecipientNameFieldProps) {
+  return (
+    <div className="form-field">
+      <label htmlFor="recipientName">Имя получателя</label>
+      <div className="input-shell">
+        <UserRound size={17} />
+        <input
+          id="recipientName"
+          type="text"
+          autoComplete="name"
+          placeholder="Кирилл М."
+          aria-invalid={Boolean(error)}
+          {...register('recipientName')}
+        />
+      </div>
+      {error ? (
+        <span className="form-field__error">{error}</span>
+      ) : (
+        <span className="form-field__hint">{hint}</span>
+      )}
+    </div>
   )
 }

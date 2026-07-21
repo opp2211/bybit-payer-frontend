@@ -3,11 +3,24 @@ import { useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
 
 import { BybitOrderLink } from '@/entities/bybit-order/ui/BybitOrderLink'
-import type { Withdrawal } from '@/entities/withdrawal/model/types'
+import {
+  getEffectiveWithdrawalMethod,
+  getPayerBankTypeTitle,
+  getTransferPartyTitle,
+  getWithdrawalMethodTitle,
+  type Withdrawal,
+} from '@/entities/withdrawal/model/types'
 import { OrderAmounts } from '@/entities/withdrawal/ui/OrderAmounts'
 import { useMarkWithdrawalSeen } from '@/features/mark-withdrawal-seen/model/useMarkWithdrawalSeen'
+import { useWorkspace } from '@/features/workspace/model/useWorkspace'
 import { getErrorMessage } from '@/shared/lib/errors'
-import { formatDateTime, formatPhone, formatRub } from '@/shared/lib/formatters'
+import {
+  formatAccountNumber,
+  formatCardNumber,
+  formatDateTime,
+  formatPhone,
+  formatRub,
+} from '@/shared/lib/formatters'
 import { Badge } from '@/shared/ui/Badge'
 import { Button } from '@/shared/ui/Button'
 import { Card } from '@/shared/ui/Card'
@@ -21,7 +34,35 @@ type Props = {
   onRetry: () => void
 }
 
+function getRecipientTitle(withdrawal: Withdrawal): string {
+  const withdrawalMethod = getEffectiveWithdrawalMethod(withdrawal.withdrawalMethod)
+  return withdrawal.recipientName ?? (
+    withdrawalMethod === 'CARD_NUMBER' ? 'Карта получателя' : 'Получатель'
+  )
+}
+
+function getRecipientRequisites(withdrawal: Withdrawal): string {
+  const withdrawalMethod = getEffectiveWithdrawalMethod(withdrawal.withdrawalMethod)
+  if (withdrawalMethod === 'SBP') {
+    return withdrawal.recipientPhone ? formatPhone(withdrawal.recipientPhone) : '—'
+  }
+  if (withdrawalMethod === 'CARD_NUMBER') {
+    return formatCardNumber(withdrawal.recipientCardNumber)
+  }
+  return formatAccountNumber(withdrawal.recipientAccountNumber)
+}
+
+function getPaymentContext(withdrawal: Withdrawal): string {
+  const withdrawalMethod = getEffectiveWithdrawalMethod(withdrawal.withdrawalMethod)
+  return [
+    getPayerBankTypeTitle(withdrawal.payerBankType),
+    getWithdrawalMethodTitle(withdrawalMethod),
+    getTransferPartyTitle(withdrawal.thirdPartyTransfer),
+  ].join(' · ')
+}
+
 export function CompletedWithdrawals({ data = [], loading, error, onRetry }: Props) {
+  const { selectedWorkspaceId } = useWorkspace()
   const markSeenMutation = useMarkWithdrawalSeen()
   const navigate = useNavigate()
   const unseenCount = data.filter((item) => !item.completionSeen).length
@@ -33,9 +74,14 @@ export function CompletedWithdrawals({ data = [], loading, error, onRetry }: Pro
   )
 
   const markSeen = async (withdrawal: Withdrawal) => {
+    if (!selectedWorkspaceId) return
+
     try {
-      await markSeenMutation.mutateAsync(withdrawal.id)
-      toast.success(`Завершение заявки #${withdrawal.id} подтверждено`)
+      await markSeenMutation.mutateAsync({
+        workspacePublicId: selectedWorkspaceId,
+        withdrawalPublicId: withdrawal.publicId,
+      })
+      toast.success(`Завершение заявки ${withdrawal.publicId} подтверждено`)
     } catch (mutationError) {
       toast.error('Не удалось подтвердить просмотр', {
         description: getErrorMessage(mutationError),
@@ -74,16 +120,16 @@ export function CompletedWithdrawals({ data = [], loading, error, onRetry }: Pro
             <tbody>
               {withdrawals.map((withdrawal) => (
                 <tr
-                  key={withdrawal.id}
+                  key={withdrawal.publicId}
                   className={!withdrawal.completionSeen ? 'new-row' : ''}
                   role="link"
                   tabIndex={0}
                   onClick={(event) => {
                     if ((event.target as HTMLElement).closest('button, a')) return
-                    navigate(`/withdrawals/${withdrawal.id}`)
+                    navigate(`/withdrawals/${withdrawal.publicId}`)
                   }}
                   onKeyDown={(event) => {
-                    if (event.key === 'Enter') navigate(`/withdrawals/${withdrawal.id}`)
+                    if (event.key === 'Enter') navigate(`/withdrawals/${withdrawal.publicId}`)
                   }}
                 >
                   <td data-label="Заявка">
@@ -95,13 +141,14 @@ export function CompletedWithdrawals({ data = [], loading, error, onRetry }: Pro
                       >
                         {formatRub(withdrawal.amountRub)}
                       </CopyValue>
-                      <span>#{withdrawal.id}</span>
+                      <span className="mono">{withdrawal.publicId}</span>
                     </div>
                   </td>
                   <td data-label="Получатель">
                     <div className="cell-primary">
-                      <strong>{withdrawal.recipientName}</strong>
-                      <span>{formatPhone(withdrawal.recipientPhone)}</span>
+                      <strong>{getRecipientTitle(withdrawal)}</strong>
+                      <span>{getRecipientRequisites(withdrawal)}</span>
+                      <span className="text-muted">{getPaymentContext(withdrawal)}</span>
                     </div>
                   </td>
                   <td data-label="Bybit order">
@@ -124,7 +171,8 @@ export function CompletedWithdrawals({ data = [], loading, error, onRetry }: Pro
                         variant="secondary"
                         icon={<Sparkles size={14} />}
                         loading={
-                          markSeenMutation.isPending && markSeenMutation.variables === withdrawal.id
+                          markSeenMutation.isPending &&
+                          markSeenMutation.variables?.withdrawalPublicId === withdrawal.publicId
                         }
                         onClick={() => markSeen(withdrawal)}
                       >

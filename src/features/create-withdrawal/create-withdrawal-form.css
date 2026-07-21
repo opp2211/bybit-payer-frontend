@@ -3,15 +3,27 @@
   top: calc(var(--header-height) + 20px);
 }
 
+.create-form-card .card__header {
+  padding: 18px 20px;
+}
+
+.create-form-card .card__icon {
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-sm);
+  background: var(--color-info-soft);
+  color: var(--color-info);
+}
+
 .create-form {
   display: grid;
-  gap: 17px;
-  padding: 22px;
+  gap: 16px;
+  padding: 20px;
 }
 
 .form-field {
   display: grid;
-  gap: 7px;
+  gap: 8px;
 }
 
 .form-field label {
@@ -20,14 +32,138 @@
   font-weight: 700;
 }
 
+.payer-bank-field {
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.payer-bank-field legend {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 0 8px;
+  color: #344054;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.payer-bank-field legend svg {
+  color: var(--color-primary);
+}
+
+.payer-bank-toggle {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 4px;
+  padding: 3px;
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-sm);
+  background: #f3f6fb;
+}
+
+.payer-bank-toggle__option {
+  position: relative;
+  min-width: 0;
+}
+
+.payer-bank-toggle__option input {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.payer-bank-toggle__option span {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 40px;
+  padding: 7px 6px;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  color: #556274;
+  font-size: 11.5px;
+  font-weight: 700;
+  line-height: 1.15;
+  text-align: center;
+  overflow-wrap: anywhere;
+  transition:
+    border-color 150ms ease,
+    background 150ms ease,
+    color 150ms ease,
+    box-shadow 150ms ease;
+}
+
+.payer-bank-toggle__option span::before {
+  width: 7px;
+  height: 7px;
+  flex: 0 0 auto;
+  border: 1.5px solid #a6b0c0;
+  border-radius: 50%;
+  content: '';
+  transition:
+    background 150ms ease,
+    border-color 150ms ease;
+}
+
+.payer-bank-toggle__option:hover span {
+  background: rgb(255 255 255 / 68%);
+  color: var(--color-text);
+}
+
+.payer-bank-toggle__option input:checked + span {
+  border-color: rgb(49 87 213 / 34%);
+  background: var(--color-surface);
+  box-shadow: 0 1px 3px rgb(16 24 40 / 10%);
+  color: var(--color-text);
+}
+
+.payer-bank-toggle__option input:checked + span::before {
+  border-color: var(--color-primary);
+  background: var(--color-primary);
+}
+
+.payer-bank-toggle__option input:focus-visible + span {
+  box-shadow: 0 0 0 3px rgb(49 87 213 / 16%);
+}
+
+.payer-bank-toggle__option input:disabled + span {
+  cursor: default;
+  opacity: 0.82;
+}
+
+.withdrawal-method-toggle {
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+}
+
+.form-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  width: fit-content;
+  color: #344054;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.form-checkbox input {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--color-primary);
+  cursor: pointer;
+}
+
 .input-shell {
   display: flex;
   align-items: center;
   gap: 10px;
-  min-height: 45px;
+  min-height: 46px;
   padding: 0 13px;
   border: 1px solid var(--color-border-strong);
-  border-radius: 10px;
+  border-radius: var(--radius-sm);
   background: var(--color-surface);
   color: var(--color-text-muted);
   transition:
@@ -35,9 +171,13 @@
     box-shadow 150ms ease;
 }
 
+.input-shell:hover {
+  border-color: #bfc8d6;
+}
+
 .input-shell:focus-within {
   border-color: var(--color-primary);
-  box-shadow: 0 0 0 3px rgb(49 87 213 / 10%);
+  box-shadow: 0 0 0 3px rgb(49 87 213 / 11%);
 }
 
 .input-shell:has([aria-invalid='true']) {
@@ -59,6 +199,16 @@
 .input-shell input::placeholder {
   color: #b0b8c5;
   font-weight: 400;
+}
+
+.input-shell svg {
+  flex: 0 0 auto;
+  color: #7a869a;
+  transition: color 150ms ease;
+}
+
+.input-shell:focus-within svg {
+  color: var(--color-primary);
 }
 
 .input-shell input[type='number'] {
@@ -94,6 +244,7 @@
   color: var(--color-text-muted);
   font-size: 11px;
   font-weight: 750;
+  letter-spacing: 0;
 }
 
 .form-field__hint,
@@ -123,8 +274,9 @@
   display: flex;
   align-items: flex-start;
   gap: 8px;
-  padding: 11px 12px;
-  border-radius: 10px;
+  padding: 12px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
   background: var(--color-surface-subtle);
   color: var(--color-text-secondary);
   font-size: 12px;
@@ -149,13 +301,126 @@
   display: block;
 }
 
+.ad-preview {
+  display: grid;
+  gap: 12px;
+  padding: 14px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: #f8fafc;
+}
+
+.ad-preview__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  color: #344054;
+}
+
+.ad-preview__header > span {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.ad-preview__header svg {
+  color: var(--color-primary);
+}
+
+.ad-preview__header small {
+  color: var(--color-text-muted);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.ad-preview__metrics {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  margin: 0;
+}
+
+.ad-preview__metrics > div {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+  padding: 10px;
+  border: 1px solid #d9e0ea;
+  border-radius: 6px;
+  background: var(--color-surface);
+}
+
+.ad-preview__metrics dt {
+  color: var(--color-text-muted);
+  font-size: 10.5px;
+  font-weight: 750;
+}
+
+.ad-preview__metrics dd {
+  margin: 0;
+  color: var(--color-text);
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
+}
+
+.ad-preview__description {
+  display: grid;
+  gap: 6px;
+}
+
+.ad-preview__description span {
+  color: var(--color-text-muted);
+  font-size: 10.5px;
+  font-weight: 750;
+}
+
+.ad-preview__description p,
+.ad-preview__state {
+  margin: 0;
+  color: var(--color-text-secondary);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.ad-preview__description p {
+  padding: 10px;
+  border: 1px solid #d9e0ea;
+  border-radius: 6px;
+  background: var(--color-surface);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.ad-preview__state--error {
+  color: var(--color-danger);
+}
+
 .create-form__submit {
   width: 100%;
-  margin-top: 1px;
+  margin-top: 2px;
 }
 
 @media (max-width: 1099px) {
   .create-form-card {
     position: static;
+  }
+}
+
+@media (max-width: 520px) {
+  .payer-bank-toggle {
+    grid-template-columns: 1fr;
+  }
+
+  .payer-bank-toggle__option span {
+    min-height: 36px;
+  }
+
+  .ad-preview__metrics {
+    grid-template-columns: 1fr;
   }
 }

@@ -4,13 +4,26 @@ import { useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
 
 import { BybitOrderLink } from '@/entities/bybit-order/ui/BybitOrderLink'
-import type { Withdrawal } from '@/entities/withdrawal/model/types'
+import {
+  getEffectiveWithdrawalMethod,
+  getPayerBankTypeTitle,
+  getTransferPartyTitle,
+  getWithdrawalMethodTitle,
+  type Withdrawal,
+} from '@/entities/withdrawal/model/types'
 import { OrderAmounts } from '@/entities/withdrawal/ui/OrderAmounts'
 import { WithdrawalStatusBadge } from '@/entities/withdrawal/ui/WithdrawalStatusBadge'
 import { useCancelWithdrawal } from '@/features/cancel-withdrawal/model/useCancelWithdrawal'
 import { useReleaseWithdrawal } from '@/features/release-withdrawal/model/useReleaseWithdrawal'
+import { useWorkspace } from '@/features/workspace/model/useWorkspace'
 import { getErrorMessage } from '@/shared/lib/errors'
-import { formatDateTime, formatPhone, formatRub } from '@/shared/lib/formatters'
+import {
+  formatAccountNumber,
+  formatCardNumber,
+  formatDateTime,
+  formatPhone,
+  formatRub,
+} from '@/shared/lib/formatters'
 import { Badge } from '@/shared/ui/Badge'
 import { Button } from '@/shared/ui/Button'
 import { Card } from '@/shared/ui/Card'
@@ -39,7 +52,45 @@ function getLastActivity(withdrawal: Withdrawal): string {
   return dates.sort((a, b) => new Date(b).getTime() - new Date(a).getTime())[0]
 }
 
+function getRecipientTitle(withdrawal: Withdrawal): string {
+  const withdrawalMethod = getEffectiveWithdrawalMethod(withdrawal.withdrawalMethod)
+  return withdrawal.recipientName ?? (
+    withdrawalMethod === 'CARD_NUMBER' ? 'Карта получателя' : 'Получатель'
+  )
+}
+
+function getRecipientRequisites(withdrawal: Withdrawal): string {
+  const withdrawalMethod = getEffectiveWithdrawalMethod(withdrawal.withdrawalMethod)
+  if (withdrawalMethod === 'SBP') {
+    return [
+      withdrawal.recipientPhone ? formatPhone(withdrawal.recipientPhone) : null,
+      withdrawal.recipientBankTitle,
+    ]
+      .filter(Boolean)
+      .join(' · ')
+  }
+  if (withdrawalMethod === 'CARD_NUMBER') {
+    return formatCardNumber(withdrawal.recipientCardNumber)
+  }
+  return formatAccountNumber(withdrawal.recipientAccountNumber)
+}
+
+function getPaymentContext(withdrawal: Withdrawal): string {
+  const withdrawalMethod = getEffectiveWithdrawalMethod(withdrawal.withdrawalMethod)
+  return [
+    getPayerBankTypeTitle(withdrawal.payerBankType),
+    getWithdrawalMethodTitle(withdrawalMethod),
+    getTransferPartyTitle(withdrawal.thirdPartyTransfer),
+    withdrawalMethod === 'CARD_NUMBER' && Boolean(withdrawal.recipientCardTbank)
+      ? 'карта Т-банка'
+      : null,
+  ]
+    .filter(Boolean)
+    .join(' · ')
+}
+
 export function ActiveWithdrawals({ data = [], loading, error, onRetry }: Props) {
+  const { selectedWorkspaceId } = useWorkspace()
   const [selectedForCancel, setSelectedForCancel] = useState<Withdrawal | null>(null)
   const [selectedForRelease, setSelectedForRelease] = useState<Withdrawal | null>(null)
   const cancelMutation = useCancelWithdrawal()
@@ -56,11 +107,14 @@ export function ActiveWithdrawals({ data = [], loading, error, onRetry }: Props)
   )
 
   const cancelSelected = async () => {
-    if (!selectedForCancel) return
+    if (!selectedForCancel || !selectedWorkspaceId) return
 
     try {
-      await cancelMutation.mutateAsync(selectedForCancel.id)
-      toast.success(`Заявка #${selectedForCancel.id} отменена`)
+      await cancelMutation.mutateAsync({
+        workspacePublicId: selectedWorkspaceId,
+        withdrawalPublicId: selectedForCancel.publicId,
+      })
+      toast.success(`Заявка ${selectedForCancel.publicId} отменена`)
       setSelectedForCancel(null)
     } catch (mutationError) {
       toast.error('Не удалось отменить заявку', {
@@ -70,11 +124,14 @@ export function ActiveWithdrawals({ data = [], loading, error, onRetry }: Props)
   }
 
   const releaseSelected = async () => {
-    if (!selectedForRelease) return
+    if (!selectedForRelease || !selectedWorkspaceId) return
 
     try {
-      await releaseMutation.mutateAsync(selectedForRelease.id)
-      toast.success(`Ордер заявки #${selectedForRelease.id} отпущен`)
+      await releaseMutation.mutateAsync({
+        workspacePublicId: selectedWorkspaceId,
+        withdrawalPublicId: selectedForRelease.publicId,
+      })
+      toast.success(`Ордер заявки ${selectedForRelease.publicId} отпущен`)
       setSelectedForRelease(null)
     } catch (mutationError) {
       toast.error('Не удалось отпустить ордер', {
@@ -116,16 +173,16 @@ export function ActiveWithdrawals({ data = [], loading, error, onRetry }: Props)
               <tbody>
                 {withdrawals.map((withdrawal) => (
                   <tr
-                    key={withdrawal.id}
+                    key={withdrawal.publicId}
                     className={withdrawal.attentionRequired ? 'data-table__row--attention' : ''}
                     role="link"
                     tabIndex={0}
                     onClick={(event) => {
                       if ((event.target as HTMLElement).closest('button, a')) return
-                      navigate(`/withdrawals/${withdrawal.id}`)
+                      navigate(`/withdrawals/${withdrawal.publicId}`)
                     }}
                     onKeyDown={(event) => {
-                      if (event.key === 'Enter') navigate(`/withdrawals/${withdrawal.id}`)
+                      if (event.key === 'Enter') navigate(`/withdrawals/${withdrawal.publicId}`)
                     }}
                   >
                     <td data-label="Заявка">
@@ -137,15 +194,14 @@ export function ActiveWithdrawals({ data = [], loading, error, onRetry }: Props)
                         >
                           {formatRub(withdrawal.amountRub)}
                         </CopyValue>
-                        <span>#{withdrawal.id}</span>
+                        <span className="mono">{withdrawal.publicId}</span>
                       </div>
                     </td>
                     <td data-label="Получатель">
                       <div className="cell-primary">
-                        <strong>{withdrawal.recipientName}</strong>
-                        <span>
-                          {formatPhone(withdrawal.recipientPhone)} · {withdrawal.recipientBankTitle}
-                        </span>
+                        <strong>{getRecipientTitle(withdrawal)}</strong>
+                        <span>{getRecipientRequisites(withdrawal)}</span>
+                        <span className="text-muted">{getPaymentContext(withdrawal)}</span>
                       </div>
                     </td>
                     <td data-label="Статус">
@@ -202,7 +258,7 @@ export function ActiveWithdrawals({ data = [], loading, error, onRetry }: Props)
                             variant="ghost"
                             size="sm"
                             icon={<Ban size={15} />}
-                            aria-label={`Отменить заявку ${withdrawal.id}`}
+                            aria-label={`Отменить заявку ${withdrawal.publicId}`}
                             onClick={() => setSelectedForCancel(withdrawal)}
                           >
                             <span className="action-label">Отменить</span>
@@ -213,7 +269,7 @@ export function ActiveWithdrawals({ data = [], loading, error, onRetry }: Props)
                             variant="danger"
                             size="sm"
                             icon={<Unlock size={15} />}
-                            aria-label={`Отпустить ордер заявки ${withdrawal.id}`}
+                            aria-label={`Отпустить ордер заявки ${withdrawal.publicId}`}
                             onClick={() => setSelectedForRelease(withdrawal)}
                           >
                             <span className="action-label">Отпустить ордер</span>
@@ -234,7 +290,7 @@ export function ActiveWithdrawals({ data = [], loading, error, onRetry }: Props)
         title="Отменить заявку?"
         description={
           <p>
-            Заявка <strong>#{selectedForCancel?.id}</strong> на сумму{' '}
+            Заявка <strong>{selectedForCancel?.publicId}</strong> на сумму{' '}
             <strong>{formatRub(selectedForCancel?.amountRub)}</strong> будет снята с обработки.
             Backend повторно проверит, не появился ли по ней Bybit-ордер.
           </p>
@@ -251,8 +307,8 @@ export function ActiveWithdrawals({ data = [], loading, error, onRetry }: Props)
         title="Отпустить ордер?"
         description={
           <p>
-            Система не смогла проверить оплату по чеку с почты. Вы уверены, что хотите отпустить
-            ордер? Это означает, что контрагент получит USDT.
+            Система не смогла проверить оплату по чеку с почты. Используйте ручное подтверждение
+            только после проверки оплаты.
           </p>
         }
         confirmLabel="Отпустить ордер"

@@ -1,6 +1,7 @@
 import clsx from 'clsx'
 import {
   Activity,
+  Building2,
   ChevronDown,
   CircleAlert,
   CircleDollarSign,
@@ -11,6 +12,7 @@ import {
   RefreshCw,
   Server,
   ShieldCheck,
+  Users,
   X,
 } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
@@ -20,38 +22,60 @@ import { toast } from 'sonner'
 import { useSystemStatusQuery } from '@/entities/system/model/queries'
 import { useAuth } from '@/features/auth/model/useAuth'
 import { useResyncSystem } from '@/features/resync-system/model/useResyncSystem'
+import { useWorkspace } from '@/features/workspace/model/useWorkspace'
 import { getErrorMessage } from '@/shared/lib/errors'
 import { formatDateTime } from '@/shared/lib/formatters'
 import { Button } from '@/shared/ui/Button'
 
-const navigation = [
-  {
-    label: 'Заявки',
-    to: '/',
-    icon: LayoutDashboard,
-  },
-]
-
 export function AppShell() {
   const { user, logout } = useAuth()
+  const { workspaces, selectedWorkspace, selectedWorkspaceId, selectWorkspace } = useWorkspace()
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [systemMenuOpen, setSystemMenuOpen] = useState(false)
+  const [workspaceMenuOpen, setWorkspaceMenuOpen] = useState(false)
   const systemMenuRef = useRef<HTMLDivElement>(null)
-  const systemQuery = useSystemStatusQuery()
-  const resyncMutation = useResyncSystem()
+  const workspaceMenuRef = useRef<HTMLDivElement>(null)
+  const systemQuery = useSystemStatusQuery(selectedWorkspaceId ?? undefined)
+  const resyncMutation = useResyncSystem(selectedWorkspaceId ?? '')
   const systemOnline = Boolean(
     systemQuery.data?.bybitApiAvailable && systemQuery.data?.gmailImapsAvailable,
   )
 
+  const navigation = [
+    {
+      label: 'Заявки',
+      to: '/',
+      icon: LayoutDashboard,
+      end: true,
+    },
+    {
+      label: 'Рабочие пространства',
+      to: '/workspaces',
+      icon: Users,
+    },
+    ...(user?.role === 'ADMIN'
+      ? [
+          {
+            label: 'Админка',
+            to: '/admin/banks',
+            icon: Building2,
+          },
+        ]
+      : []),
+  ]
+
   useEffect(() => {
-    const closeMenu = (event: MouseEvent) => {
+    const closeMenus = (event: MouseEvent) => {
       if (!systemMenuRef.current?.contains(event.target as Node)) setSystemMenuOpen(false)
+      if (!workspaceMenuRef.current?.contains(event.target as Node)) setWorkspaceMenuOpen(false)
     }
-    document.addEventListener('mousedown', closeMenu)
-    return () => document.removeEventListener('mousedown', closeMenu)
+    document.addEventListener('mousedown', closeMenus)
+    return () => document.removeEventListener('mousedown', closeMenus)
   }, [])
 
   const resync = async () => {
+    if (!selectedWorkspaceId) return
+
     try {
       await resyncMutation.mutateAsync()
       toast.success('Система синхронизирована')
@@ -97,11 +121,11 @@ export function AppShell() {
 
         <nav className="sidebar__nav" aria-label="Основная навигация">
           <span className="sidebar__label">Управление</span>
-          {navigation.map(({ label, to, icon: Icon }) => (
+          {navigation.map(({ label, to, icon: Icon, end }) => (
             <NavLink
               key={to}
               to={to}
-              end
+              end={end}
               onClick={() => setSidebarOpen(false)}
               className={({ isActive }) => clsx('nav-item', isActive && 'nav-item--active')}
             >
@@ -118,7 +142,7 @@ export function AppShell() {
             </span>
             <div>
               <strong>Защищённый доступ</strong>
-              <span>Все операции требуют авторизации</span>
+              <span>Рабочие действия доступны участникам пространства</span>
             </div>
           </div>
           <div className="sidebar__version">FlowPay v1.0</div>
@@ -145,6 +169,66 @@ export function AppShell() {
             <Menu size={21} />
           </button>
 
+          <div className="workspace-menu" ref={workspaceMenuRef}>
+            <button
+              type="button"
+              className="workspace-switcher"
+              aria-expanded={workspaceMenuOpen}
+              onClick={() => setWorkspaceMenuOpen((open) => !open)}
+            >
+              <Users size={16} />
+              <span>
+                <strong>{selectedWorkspace?.name ?? 'Нет workspace'}</strong>
+                <small>{selectedWorkspace?.publicId ?? 'Создайте пространство'}</small>
+              </span>
+              <ChevronDown size={14} />
+            </button>
+
+            {workspaceMenuOpen && (
+              <div className="workspace-popover">
+                {workspaces.length === 0 ? (
+                  <Link
+                    className="workspace-popover__empty"
+                    to="/workspaces"
+                    onClick={() => setWorkspaceMenuOpen(false)}
+                  >
+                    Создать рабочее пространство
+                  </Link>
+                ) : (
+                  workspaces.map((workspace) => (
+                    <button
+                      key={workspace.publicId}
+                      type="button"
+                      className={clsx(
+                        'workspace-option',
+                        workspace.publicId === selectedWorkspaceId && 'is-active',
+                      )}
+                      onClick={() => {
+                        selectWorkspace(workspace.publicId)
+                        setWorkspaceMenuOpen(false)
+                      }}
+                    >
+                      <span>
+                        <strong>{workspace.name}</strong>
+                        <small>{workspace.publicId}</small>
+                      </span>
+                      <small>
+                        {workspace.currentUserRole === 'OWNER' ? 'Владелец' : 'Участник'}
+                      </small>
+                    </button>
+                  ))
+                )}
+                <Link
+                  className="workspace-popover__manage"
+                  to="/workspaces"
+                  onClick={() => setWorkspaceMenuOpen(false)}
+                >
+                  Управление workspace
+                </Link>
+              </div>
+            )}
+          </div>
+
           <div className="topbar__spacer" />
 
           <div className="system-menu" ref={systemMenuRef}>
@@ -152,6 +236,7 @@ export function AppShell() {
               type="button"
               className="topbar__status"
               aria-expanded={systemMenuOpen}
+              disabled={!selectedWorkspaceId}
               onClick={() => setSystemMenuOpen((open) => !open)}
             >
               <span
@@ -165,16 +250,18 @@ export function AppShell() {
                 )}
               />
               <span>
-                {systemQuery.isError
-                  ? 'Backend недоступен'
-                  : systemOnline
-                    ? 'Система в норме'
-                    : 'Проверьте интеграции'}
+                {!selectedWorkspaceId
+                  ? 'Нет workspace'
+                  : systemQuery.isError
+                    ? 'Backend недоступен'
+                    : systemOnline
+                      ? 'Система в норме'
+                      : 'Проверьте интеграции'}
               </span>
               <ChevronDown size={14} />
             </button>
 
-            {systemMenuOpen && (
+            {systemMenuOpen && selectedWorkspaceId && (
               <div className="system-popover">
                 <div className="system-popover__header">
                   <div>
@@ -194,7 +281,7 @@ export function AppShell() {
                   <Server size={16} />
                   <div>
                     <strong>Bybit API</strong>
-                    <span>Режим {systemQuery.data?.bybitMode ?? '—'}</span>
+                    <span>Режим {systemQuery.data?.bybitMode ?? '-'}</span>
                   </div>
                   <span
                     className={clsx(
@@ -208,7 +295,7 @@ export function AppShell() {
                 <div className="system-popover__integration">
                   <MailCheck size={16} />
                   <div>
-                    <strong>Gmail IMAPS</strong>
+                    <strong>IMAP</strong>
                     <span>Получение PDF-чеков</span>
                   </div>
                   <span
@@ -236,7 +323,7 @@ export function AppShell() {
             </span>
             <span>
               <strong>{user?.username ?? 'Оператор'}</strong>
-              <small>Авторизован</small>
+              <small>{user?.role === 'ADMIN' ? 'Админ' : 'Пользователь'}</small>
             </span>
           </div>
           <Button
