@@ -129,6 +129,33 @@
   box-shadow: 0 0 0 3px rgb(49 87 213 / 16%);
 }
 
+.payer-bank-toggle__option input:disabled + span {
+  cursor: default;
+  opacity: 0.82;
+}
+
+.withdrawal-method-toggle {
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+}
+
+.form-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  width: fit-content;
+  color: #344054;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.form-checkbox input {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--color-primary);
+  cursor: pointer;
+}
+
 .input-shell {
   display: flex;
   align-items: center;

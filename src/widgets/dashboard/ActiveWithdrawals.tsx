@@ -4,14 +4,24 @@ import { useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
 
 import { BybitOrderLink } from '@/entities/bybit-order/ui/BybitOrderLink'
-import { getPayerBankTypeTitle, type Withdrawal } from '@/entities/withdrawal/model/types'
+import {
+  getPayerBankTypeTitle,
+  getWithdrawalMethodTitle,
+  type Withdrawal,
+} from '@/entities/withdrawal/model/types'
 import { OrderAmounts } from '@/entities/withdrawal/ui/OrderAmounts'
 import { WithdrawalStatusBadge } from '@/entities/withdrawal/ui/WithdrawalStatusBadge'
 import { useCancelWithdrawal } from '@/features/cancel-withdrawal/model/useCancelWithdrawal'
 import { useReleaseWithdrawal } from '@/features/release-withdrawal/model/useReleaseWithdrawal'
 import { useWorkspace } from '@/features/workspace/model/useWorkspace'
 import { getErrorMessage } from '@/shared/lib/errors'
-import { formatDateTime, formatPhone, formatRub } from '@/shared/lib/formatters'
+import {
+  formatAccountNumber,
+  formatCardNumber,
+  formatDateTime,
+  formatPhone,
+  formatRub,
+} from '@/shared/lib/formatters'
 import { Badge } from '@/shared/ui/Badge'
 import { Button } from '@/shared/ui/Button'
 import { Card } from '@/shared/ui/Card'
@@ -38,6 +48,40 @@ function getLastActivity(withdrawal: Withdrawal): string {
   ].filter(Boolean) as string[]
 
   return dates.sort((a, b) => new Date(b).getTime() - new Date(a).getTime())[0]
+}
+
+function getRecipientTitle(withdrawal: Withdrawal): string {
+  return withdrawal.recipientName ?? (
+    withdrawal.withdrawalMethod === 'CARD_NUMBER' ? 'Карта получателя' : 'Получатель'
+  )
+}
+
+function getRecipientRequisites(withdrawal: Withdrawal): string {
+  if (withdrawal.withdrawalMethod === 'SBP') {
+    return [
+      withdrawal.recipientPhone ? formatPhone(withdrawal.recipientPhone) : null,
+      withdrawal.recipientBankTitle,
+    ]
+      .filter(Boolean)
+      .join(' · ')
+  }
+  if (withdrawal.withdrawalMethod === 'CARD_NUMBER') {
+    return formatCardNumber(withdrawal.recipientCardNumber)
+  }
+  return formatAccountNumber(withdrawal.recipientAccountNumber)
+}
+
+function getPaymentContext(withdrawal: Withdrawal): string {
+  return [
+    getPayerBankTypeTitle(withdrawal.payerBankType),
+    getWithdrawalMethodTitle(withdrawal.withdrawalMethod),
+    withdrawal.thirdPartyTransfer ? '3 лицо' : 'личная / жена',
+    withdrawal.withdrawalMethod === 'CARD_NUMBER' && withdrawal.recipientCardTbank
+      ? 'карта Т-банка'
+      : null,
+  ]
+    .filter(Boolean)
+    .join(' · ')
 }
 
 export function ActiveWithdrawals({ data = [], loading, error, onRetry }: Props) {
@@ -150,13 +194,9 @@ export function ActiveWithdrawals({ data = [], loading, error, onRetry }: Props)
                     </td>
                     <td data-label="Получатель">
                       <div className="cell-primary">
-                        <strong>{withdrawal.recipientName}</strong>
-                        <span>
-                          {formatPhone(withdrawal.recipientPhone)} · {withdrawal.recipientBankTitle}
-                        </span>
-                        <span className="text-muted">
-                          {getPayerBankTypeTitle(withdrawal.payerBankType)}
-                        </span>
+                        <strong>{getRecipientTitle(withdrawal)}</strong>
+                        <span>{getRecipientRequisites(withdrawal)}</span>
+                        <span className="text-muted">{getPaymentContext(withdrawal)}</span>
                       </div>
                     </td>
                     <td data-label="Статус">

@@ -11,6 +11,7 @@ export type WithdrawalStatus =
 export type RecipientBank = string
 
 export type PayerBankType = 'TBANK_AUTO' | 'SBERBANK' | 'ANY_BANK'
+export type WithdrawalMethod = 'SBP' | 'CARD_NUMBER' | 'ACCOUNT_NUMBER'
 
 export const payerBankTypeLabels = {
   TBANK_AUTO: 'Т-банк (авто)',
@@ -21,16 +22,31 @@ export const payerBankTypeLabels = {
 export const getPayerBankTypeTitle = (payerBankType: PayerBankType) =>
   payerBankTypeLabels[payerBankType]
 
+export const withdrawalMethodLabels = {
+  SBP: 'СБП',
+  CARD_NUMBER: 'По номеру карты',
+  ACCOUNT_NUMBER: 'По номеру счета',
+} satisfies Record<WithdrawalMethod, string>
+
+export const getWithdrawalMethodTitle = (withdrawalMethod: WithdrawalMethod) =>
+  withdrawalMethodLabels[withdrawalMethod]
+
 export type Withdrawal = {
   id: number
   publicId: string
   amountRub: number
-  recipientPhone: string
-  recipientBank: RecipientBank
-  recipientBankTitle: string
-  recipientName: string
+  recipientPhone: string | null
+  recipientBank: RecipientBank | null
+  recipientBankTitle: string | null
+  recipientName: string | null
+  recipientCardNumber: string | null
+  recipientAccountNumber: string | null
+  recipientCardTbank: boolean
+  thirdPartyTransfer: boolean
   payerBankType: PayerBankType
   payerBankTypeTitle: string
+  withdrawalMethod: WithdrawalMethod
+  withdrawalMethodTitle: string
   autoReleaseEnabled: boolean
   status: WithdrawalStatus
   statusTitle: string
@@ -96,6 +112,7 @@ export type EmailReceiptCheck = {
   parsedRecipientPhone: string | null
   parsedRecipientBank: string | null
   parsedRecipientName: string | null
+  parsedRecipientCard: string | null
   parsedOperationDate: string | null
   parsedOperationId: string | null
   parsedReceiptNumber: string | null
@@ -116,7 +133,12 @@ export type CreateWithdrawalRequest = {
   recipientPhone: string
   recipientBank: RecipientBank
   recipientName: string
+  recipientCardNumber: string
+  recipientAccountNumber: string
+  recipientCardTbank: boolean
+  thirdPartyTransfer: boolean
   payerBankType: PayerBankType
+  withdrawalMethod: WithdrawalMethod
 }
 
 export type SendChatMessageRequest = {

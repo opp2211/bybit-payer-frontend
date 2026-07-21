@@ -4,8 +4,10 @@ import {
   Check,
   CheckCircle2,
   CircleDot,
+  CreditCard,
   FileCheck2,
   FileText,
+  Hash,
   Landmark,
   Mail,
   MessageSquareText,
@@ -27,6 +29,7 @@ import { withdrawalApi } from '@/entities/withdrawal/api/withdrawal-api'
 import { useWithdrawalDetailsQuery } from '@/entities/withdrawal/model/queries'
 import {
   getPayerBankTypeTitle,
+  getWithdrawalMethodTitle,
   type EmailReceiptCheck,
   type Withdrawal,
   type WithdrawalEvent,
@@ -39,7 +42,13 @@ import { useReleaseWithdrawal } from '@/features/release-withdrawal/model/useRel
 import { useSendChatMessage } from '@/features/send-chat-message/model/useSendChatMessage'
 import { useWorkspace } from '@/features/workspace/model/useWorkspace'
 import { getErrorMessage } from '@/shared/lib/errors'
-import { formatDateTime, formatPhone, formatRub } from '@/shared/lib/formatters'
+import {
+  formatAccountNumber,
+  formatCardNumber,
+  formatDateTime,
+  formatPhone,
+  formatRub,
+} from '@/shared/lib/formatters'
 import { Badge } from '@/shared/ui/Badge'
 import { Button } from '@/shared/ui/Button'
 import { Card } from '@/shared/ui/Card'
@@ -113,26 +122,81 @@ function WithdrawalSummary({ withdrawal }: { withdrawal: Withdrawal }) {
   return (
     <Card title="Данные заявки" icon={<ReceiptText size={17} />}>
       <div className="details-list">
-        <DetailRow
-          icon={<UserRound size={16} />}
-          label="Получатель"
-          value={withdrawal.recipientName}
-        />
-        <DetailRow
-          icon={<Phone size={16} />}
-          label="Телефон"
-          value={formatPhone(withdrawal.recipientPhone)}
-        />
-        <DetailRow
-          icon={<Landmark size={16} />}
-          label="Банк получателя"
-          value={withdrawal.recipientBankTitle}
-        />
+        {withdrawal.recipientName && (
+          <DetailRow
+            icon={<UserRound size={16} />}
+            label="Получатель"
+            value={withdrawal.recipientName}
+          />
+        )}
         <DetailRow
           icon={<Landmark size={16} />}
           label="Банк отправителя"
           value={getPayerBankTypeTitle(withdrawal.payerBankType)}
         />
+        <DetailRow
+          icon={<CreditCard size={16} />}
+          label="Метод вывода"
+          value={getWithdrawalMethodTitle(withdrawal.withdrawalMethod)}
+        />
+        <DetailRow
+          icon={<UserRound size={16} />}
+          label="Перевод"
+          value={withdrawal.thirdPartyTransfer ? 'На 3 лицо' : 'Личная карта / карта жены'}
+        />
+        {withdrawal.withdrawalMethod === 'SBP' && (
+          <>
+            {withdrawal.recipientPhone && (
+              <DetailRow
+                icon={<Phone size={16} />}
+                label="Телефон"
+                value={formatPhone(withdrawal.recipientPhone)}
+              />
+            )}
+            {withdrawal.recipientBankTitle && (
+              <DetailRow
+                icon={<Landmark size={16} />}
+                label="Банк получателя"
+                value={withdrawal.recipientBankTitle}
+              />
+            )}
+          </>
+        )}
+        {withdrawal.withdrawalMethod === 'CARD_NUMBER' && withdrawal.recipientCardNumber && (
+          <>
+            <DetailRow
+              icon={<CreditCard size={16} />}
+              label="Номер карты"
+              value={
+                <CopyValue
+                  value={withdrawal.recipientCardNumber}
+                  successMessage="Номер карты скопирован"
+                >
+                  {formatCardNumber(withdrawal.recipientCardNumber)}
+                </CopyValue>
+              }
+            />
+            <DetailRow
+              icon={<Landmark size={16} />}
+              label="Карта Т-банка"
+              value={withdrawal.recipientCardTbank ? 'Да' : 'Нет'}
+            />
+          </>
+        )}
+        {withdrawal.withdrawalMethod === 'ACCOUNT_NUMBER' && withdrawal.recipientAccountNumber && (
+          <DetailRow
+            icon={<Hash size={16} />}
+            label="Номер счета"
+            value={
+              <CopyValue
+                value={withdrawal.recipientAccountNumber}
+                successMessage="Номер счета скопирован"
+              >
+                {formatAccountNumber(withdrawal.recipientAccountNumber)}
+              </CopyValue>
+            }
+          />
+        )}
         <DetailRow
           icon={<WalletCards size={16} />}
           label="Bybit order ID"
@@ -501,6 +565,12 @@ export function WithdrawalDetailsPage() {
                           <span>Банк</span>
                           <strong>{check.parsedRecipientBank || '-'}</strong>
                         </div>
+                        {check.parsedRecipientCard && (
+                          <div>
+                            <span>Карта</span>
+                            <strong>{check.parsedRecipientCard}</strong>
+                          </div>
+                        )}
                       </div>
                       {check.verificationError && (
                         <div className="receipt-check__error">
