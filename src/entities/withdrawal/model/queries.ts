@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
 
 import { withdrawalApi } from '@/entities/withdrawal/api/withdrawal-api'
+import type { CreateWithdrawalRequest } from '@/entities/withdrawal/model/types'
 
 export const withdrawalKeys = {
   all: ['withdrawals'] as const,
@@ -11,6 +12,8 @@ export const withdrawalKeys = {
     [...withdrawalKeys.workspace(workspacePublicId), 'completed'] as const,
   details: (workspacePublicId: string, withdrawalPublicId: string) =>
     [...withdrawalKeys.workspace(workspacePublicId), 'details', withdrawalPublicId] as const,
+  preview: (workspacePublicId: string, payload: CreateWithdrawalRequest | null) =>
+    [...withdrawalKeys.workspace(workspacePublicId), 'preview', payload] as const,
 }
 
 export function useActiveWithdrawalsQuery(workspacePublicId?: string) {
@@ -39,5 +42,17 @@ export function useWithdrawalDetailsQuery(workspacePublicId?: string, withdrawal
     queryFn: () => withdrawalApi.getDetails(workspacePublicId!, withdrawalPublicId!),
     enabled: Boolean(workspacePublicId && withdrawalPublicId),
     refetchInterval: 2_000,
+  })
+}
+
+export function useWithdrawalAdvertisementPreviewQuery(
+  workspacePublicId: string,
+  payload: CreateWithdrawalRequest | null,
+  rateKey: number | null | undefined,
+) {
+  return useQuery({
+    queryKey: [...withdrawalKeys.preview(workspacePublicId, payload), rateKey] as const,
+    queryFn: () => withdrawalApi.previewAdvertisement(workspacePublicId, payload!),
+    enabled: Boolean(workspacePublicId && payload),
   })
 }

@@ -3,6 +3,7 @@ import {
   Banknote,
   Building2,
   CreditCard,
+  FileText,
   Hash,
   Info,
   Landmark,
@@ -10,17 +11,20 @@ import {
   Send,
   UserRound,
 } from 'lucide-react'
-import { useEffect } from 'react'
+import { useEffect, useMemo } from 'react'
 import { useForm, useWatch, type UseFormRegister } from 'react-hook-form'
 import { toast } from 'sonner'
 import { z } from 'zod'
 
 import { useActiveBanksQuery } from '@/entities/bank/model/queries'
 import { useSystemStatusQuery } from '@/entities/system/model/queries'
+import { useWithdrawalAdvertisementPreviewQuery } from '@/entities/withdrawal/model/queries'
 import {
   payerBankTypeLabels,
   withdrawalMethodLabels,
+  type CreateWithdrawalRequest,
   type PayerBankType,
+  type WithdrawalAdvertisementPreview,
   type WithdrawalMethod,
 } from '@/entities/withdrawal/model/types'
 import { useCreateWithdrawal } from '@/features/create-withdrawal/model/useCreateWithdrawal'
@@ -80,7 +84,11 @@ const schema = z
 
     if (values.withdrawalMethod === 'SBP') {
       if (!values.recipientPhone) {
-        ctx.addIssue({ code: 'custom', path: ['recipientPhone'], message: 'Введите номер телефона' })
+        ctx.addIssue({
+          code: 'custom',
+          path: ['recipientPhone'],
+          message: 'Введите номер телефона',
+        })
       } else if (!phoneIsValid(values.recipientPhone)) {
         ctx.addIssue({
           code: 'custom',
@@ -167,14 +175,40 @@ export function CreateWithdrawalForm({ workspacePublicId }: Props) {
     },
   })
 
+  const amountRub = useWatch({ control, name: 'amountRub' })
   const payerBankType = useWatch({ control, name: 'payerBankType' })
   const withdrawalMethod = useWatch({ control, name: 'withdrawalMethod' })
+  const thirdPartyTransfer = useWatch({ control, name: 'thirdPartyTransfer' })
   const recipientCardTbank = useWatch({ control, name: 'recipientCardTbank' })
   const withdrawalMethodOptions = withdrawalMethodOptionsByPayerBank[payerBankType]
   const methodLocked = withdrawalMethodOptions.length === 1
   const banks = banksQuery.data ?? []
   const banksUnavailable = banksQuery.isPending || banksQuery.isError || banks.length === 0
   const requiresRecipientBank = withdrawalMethod === 'SBP'
+  const status = systemQuery.data
+  const previewAmountRub =
+    typeof amountRub === 'number' && Number.isInteger(amountRub) && amountRub > 0 ? amountRub : null
+  const previewPayload = useMemo<CreateWithdrawalRequest | null>(() => {
+    if (previewAmountRub == null) return null
+
+    return {
+      amountRub: previewAmountRub,
+      payerBankType,
+      withdrawalMethod,
+      thirdPartyTransfer: Boolean(thirdPartyTransfer),
+      recipientCardTbank: withdrawalMethod === 'CARD_NUMBER' && Boolean(recipientCardTbank),
+      recipientPhone: '',
+      recipientBank: '',
+      recipientName: '',
+      recipientCardNumber: '',
+      recipientAccountNumber: '',
+    }
+  }, [payerBankType, previewAmountRub, recipientCardTbank, thirdPartyTransfer, withdrawalMethod])
+  const previewQuery = useWithdrawalAdvertisementPreviewQuery(
+    workspacePublicId,
+    previewPayload,
+    status?.currentRate,
+  )
 
   useEffect(() => {
     if (!withdrawalMethodOptions.includes(withdrawalMethod)) {
@@ -219,7 +253,6 @@ export function CreateWithdrawalForm({ workspacePublicId }: Props) {
     }
   })
 
-  const status = systemQuery.data
   const rangeText =
     status?.currentMinRub != null && status.currentMaxRub != null
       ? `${formatRub(status.currentMinRub)} - ${formatRub(status.currentMaxRub)}`
@@ -466,6 +499,15 @@ export function CreateWithdrawalForm({ workspacePublicId }: Props) {
           </div>
         </div>
 
+        {previewPayload && (
+          <AdvertisementPreviewBlock
+            error={previewQuery.error}
+            isLoading={previewQuery.isPending}
+            isRefreshing={previewQuery.isFetching && !previewQuery.isPending}
+            preview={previewQuery.data}
+          />
+        )}
+
         <Button
           type="submit"
           size="lg"
@@ -485,6 +527,74 @@ type RecipientNameFieldProps = {
   register: UseFormRegister<FormValues>
   error?: string
   hint: string
+}
+
+type AdvertisementPreviewBlockProps = {
+  preview?: WithdrawalAdvertisementPreview
+  isLoading: boolean
+  isRefreshing: boolean
+  error: unknown
+}
+
+function AdvertisementPreviewBlock({
+  preview,
+  isLoading,
+  isRefreshing,
+  error,
+}: AdvertisementPreviewBlockProps) {
+  const rateText =
+    preview?.rate == null ? formatNumber(null) : `${formatNumber(preview.rate)} RUB/USDT`
+  const quantityText =
+    preview?.quantityUsdt == null
+      ? formatNumber(null)
+      : `${formatNumber(preview.quantityUsdt)} USDT`
+  const rangeText =
+    preview == null
+      ? formatNumber(null)
+      : `${formatRub(preview.minRub)} - ${formatRub(preview.maxRub)}`
+
+  return (
+    <section className="ad-preview" aria-live="polite">
+      <header className="ad-preview__header">
+        <span>
+          <FileText size={16} />
+          Превью объявления
+        </span>
+        {isRefreshing && <small>Обновляем...</small>}
+      </header>
+
+      {isLoading ? (
+        <p className="ad-preview__state">Формируем превью...</p>
+      ) : error ? (
+        <p className="ad-preview__state ad-preview__state--error">
+          Не удалось сформировать превью: {getErrorMessage(error)}
+        </p>
+      ) : preview ? (
+        <>
+          <dl className="ad-preview__metrics">
+            <div>
+              <dt>Курс</dt>
+              <dd>{rateText}</dd>
+            </div>
+            <div>
+              <dt>Диапазон</dt>
+              <dd>{rangeText}</dd>
+            </div>
+            <div>
+              <dt>Объем USDT</dt>
+              <dd>{quantityText}</dd>
+            </div>
+          </dl>
+          <div className="ad-preview__description">
+            <span>Описание</span>
+            <p>{preview.description}</p>
+          </div>
+        </>
+      ) : (
+        <p className="ad-preview__state">Превью пока недоступно.</p>
+      )}
+    </section>
+  )
 }
 
 function RecipientNameField({ register, error, hint }: RecipientNameFieldProps) {

@@ -154,6 +154,14 @@ export type CreateWithdrawalRequest = {
   withdrawalMethod: WithdrawalMethod
 }
 
+export type WithdrawalAdvertisementPreview = {
+  rate: number | null
+  minRub: number
+  maxRub: number
+  quantityUsdt: number | null
+  description: string
+}
+
 export type SendChatMessageRequest = {
   message: string
 }

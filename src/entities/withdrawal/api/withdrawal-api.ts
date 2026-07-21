@@ -2,6 +2,7 @@ import type {
   CreateWithdrawalRequest,
   SendChatMessageRequest,
   Withdrawal,
+  WithdrawalAdvertisementPreview,
   WithdrawalDetails,
 } from '@/entities/withdrawal/model/types'
 import { apiRequest } from '@/shared/api/api-client'
@@ -21,6 +22,14 @@ export const withdrawalApi = {
       method: 'POST',
       body: JSON.stringify(payload),
     }),
+  previewAdvertisement: (workspacePublicId: string, payload: CreateWithdrawalRequest) =>
+    apiRequest<WithdrawalAdvertisementPreview>(
+      `/api/workspaces/${workspacePublicId}/withdrawals/preview`,
+      {
+        method: 'POST',
+        body: JSON.stringify(payload),
+      },
+    ),
   cancel: (workspacePublicId: string, withdrawalPublicId: string) =>
     apiRequest<Withdrawal>(
       `/api/workspaces/${workspacePublicId}/withdrawals/${withdrawalPublicId}`,
