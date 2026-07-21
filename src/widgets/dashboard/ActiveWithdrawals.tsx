@@ -54,8 +54,9 @@ function getLastActivity(withdrawal: Withdrawal): string {
 
 function getRecipientTitle(withdrawal: Withdrawal): string {
   const withdrawalMethod = getEffectiveWithdrawalMethod(withdrawal.withdrawalMethod)
-  return withdrawal.recipientName ?? (
-    withdrawalMethod === 'CARD_NUMBER' ? 'Карта получателя' : 'Получатель'
+  return (
+    withdrawal.recipientName ??
+    (withdrawalMethod === 'CARD_NUMBER' ? 'Карта получателя' : 'Получатель')
   )
 }
 
