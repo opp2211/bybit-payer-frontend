@@ -28,7 +28,9 @@ import { BybitOrderLink } from '@/entities/bybit-order/ui/BybitOrderLink'
 import { withdrawalApi } from '@/entities/withdrawal/api/withdrawal-api'
 import { useWithdrawalDetailsQuery } from '@/entities/withdrawal/model/queries'
 import {
+  getEffectiveWithdrawalMethod,
   getPayerBankTypeTitle,
+  getTransferPartyTitle,
   getWithdrawalMethodTitle,
   type EmailReceiptCheck,
   type Withdrawal,
@@ -119,6 +121,8 @@ function ReceiptStatus({ check }: { check: EmailReceiptCheck }) {
 }
 
 function WithdrawalSummary({ withdrawal }: { withdrawal: Withdrawal }) {
+  const withdrawalMethod = getEffectiveWithdrawalMethod(withdrawal.withdrawalMethod)
+
   return (
     <Card title="Данные заявки" icon={<ReceiptText size={17} />}>
       <div className="details-list">
@@ -137,14 +141,14 @@ function WithdrawalSummary({ withdrawal }: { withdrawal: Withdrawal }) {
         <DetailRow
           icon={<CreditCard size={16} />}
           label="Метод вывода"
-          value={getWithdrawalMethodTitle(withdrawal.withdrawalMethod)}
+          value={getWithdrawalMethodTitle(withdrawalMethod)}
         />
         <DetailRow
           icon={<UserRound size={16} />}
           label="Перевод"
-          value={withdrawal.thirdPartyTransfer ? 'На 3 лицо' : 'Личная карта / карта жены'}
+          value={getTransferPartyTitle(withdrawal.thirdPartyTransfer)}
         />
-        {withdrawal.withdrawalMethod === 'SBP' && (
+        {withdrawalMethod === 'SBP' && (
           <>
             {withdrawal.recipientPhone && (
               <DetailRow
@@ -162,7 +166,7 @@ function WithdrawalSummary({ withdrawal }: { withdrawal: Withdrawal }) {
             )}
           </>
         )}
-        {withdrawal.withdrawalMethod === 'CARD_NUMBER' && withdrawal.recipientCardNumber && (
+        {withdrawalMethod === 'CARD_NUMBER' && withdrawal.recipientCardNumber && (
           <>
             <DetailRow
               icon={<CreditCard size={16} />}
@@ -183,7 +187,7 @@ function WithdrawalSummary({ withdrawal }: { withdrawal: Withdrawal }) {
             />
           </>
         )}
-        {withdrawal.withdrawalMethod === 'ACCOUNT_NUMBER' && withdrawal.recipientAccountNumber && (
+        {withdrawalMethod === 'ACCOUNT_NUMBER' && withdrawal.recipientAccountNumber && (
           <DetailRow
             icon={<Hash size={16} />}
             label="Номер счета"

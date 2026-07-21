@@ -28,8 +28,21 @@ export const withdrawalMethodLabels = {
   ACCOUNT_NUMBER: 'По номеру счета',
 } satisfies Record<WithdrawalMethod, string>
 
-export const getWithdrawalMethodTitle = (withdrawalMethod: WithdrawalMethod) =>
-  withdrawalMethodLabels[withdrawalMethod]
+export const DEFAULT_WITHDRAWAL_METHOD: WithdrawalMethod = 'SBP'
+
+export const getEffectiveWithdrawalMethod = (
+  withdrawalMethod: WithdrawalMethod | null | undefined,
+): WithdrawalMethod => withdrawalMethod ?? DEFAULT_WITHDRAWAL_METHOD
+
+export const getWithdrawalMethodTitle = (withdrawalMethod: WithdrawalMethod | null | undefined) =>
+  withdrawalMethodLabels[getEffectiveWithdrawalMethod(withdrawalMethod)]
+
+export const getEffectiveThirdPartyTransfer = (
+  thirdPartyTransfer: boolean | null | undefined,
+): boolean => thirdPartyTransfer ?? true
+
+export const getTransferPartyTitle = (thirdPartyTransfer: boolean | null | undefined) =>
+  getEffectiveThirdPartyTransfer(thirdPartyTransfer) ? '3 лицо' : '1 лицо'
 
 export type Withdrawal = {
   id: number
@@ -41,12 +54,12 @@ export type Withdrawal = {
   recipientName: string | null
   recipientCardNumber: string | null
   recipientAccountNumber: string | null
-  recipientCardTbank: boolean
-  thirdPartyTransfer: boolean
+  recipientCardTbank?: boolean | null
+  thirdPartyTransfer?: boolean | null
   payerBankType: PayerBankType
   payerBankTypeTitle: string
-  withdrawalMethod: WithdrawalMethod
-  withdrawalMethodTitle: string
+  withdrawalMethod?: WithdrawalMethod | null
+  withdrawalMethodTitle?: string | null
   autoReleaseEnabled: boolean
   status: WithdrawalStatus
   statusTitle: string

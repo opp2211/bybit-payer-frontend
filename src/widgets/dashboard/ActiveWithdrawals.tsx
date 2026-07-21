@@ -5,7 +5,9 @@ import { toast } from 'sonner'
 
 import { BybitOrderLink } from '@/entities/bybit-order/ui/BybitOrderLink'
 import {
+  getEffectiveWithdrawalMethod,
   getPayerBankTypeTitle,
+  getTransferPartyTitle,
   getWithdrawalMethodTitle,
   type Withdrawal,
 } from '@/entities/withdrawal/model/types'
@@ -51,13 +53,15 @@ function getLastActivity(withdrawal: Withdrawal): string {
 }
 
 function getRecipientTitle(withdrawal: Withdrawal): string {
+  const withdrawalMethod = getEffectiveWithdrawalMethod(withdrawal.withdrawalMethod)
   return withdrawal.recipientName ?? (
-    withdrawal.withdrawalMethod === 'CARD_NUMBER' ? 'Карта получателя' : 'Получатель'
+    withdrawalMethod === 'CARD_NUMBER' ? 'Карта получателя' : 'Получатель'
   )
 }
 
 function getRecipientRequisites(withdrawal: Withdrawal): string {
-  if (withdrawal.withdrawalMethod === 'SBP') {
+  const withdrawalMethod = getEffectiveWithdrawalMethod(withdrawal.withdrawalMethod)
+  if (withdrawalMethod === 'SBP') {
     return [
       withdrawal.recipientPhone ? formatPhone(withdrawal.recipientPhone) : null,
       withdrawal.recipientBankTitle,
@@ -65,18 +69,19 @@ function getRecipientRequisites(withdrawal: Withdrawal): string {
       .filter(Boolean)
       .join(' · ')
   }
-  if (withdrawal.withdrawalMethod === 'CARD_NUMBER') {
+  if (withdrawalMethod === 'CARD_NUMBER') {
     return formatCardNumber(withdrawal.recipientCardNumber)
   }
   return formatAccountNumber(withdrawal.recipientAccountNumber)
 }
 
 function getPaymentContext(withdrawal: Withdrawal): string {
+  const withdrawalMethod = getEffectiveWithdrawalMethod(withdrawal.withdrawalMethod)
   return [
     getPayerBankTypeTitle(withdrawal.payerBankType),
-    getWithdrawalMethodTitle(withdrawal.withdrawalMethod),
-    withdrawal.thirdPartyTransfer ? '3 лицо' : 'личная / жена',
-    withdrawal.withdrawalMethod === 'CARD_NUMBER' && withdrawal.recipientCardTbank
+    getWithdrawalMethodTitle(withdrawalMethod),
+    getTransferPartyTitle(withdrawal.thirdPartyTransfer),
+    withdrawalMethod === 'CARD_NUMBER' && Boolean(withdrawal.recipientCardTbank)
       ? 'карта Т-банка'
       : null,
   ]

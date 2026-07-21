@@ -4,7 +4,9 @@ import { toast } from 'sonner'
 
 import { BybitOrderLink } from '@/entities/bybit-order/ui/BybitOrderLink'
 import {
+  getEffectiveWithdrawalMethod,
   getPayerBankTypeTitle,
+  getTransferPartyTitle,
   getWithdrawalMethodTitle,
   type Withdrawal,
 } from '@/entities/withdrawal/model/types'
@@ -33,26 +35,29 @@ type Props = {
 }
 
 function getRecipientTitle(withdrawal: Withdrawal): string {
+  const withdrawalMethod = getEffectiveWithdrawalMethod(withdrawal.withdrawalMethod)
   return withdrawal.recipientName ?? (
-    withdrawal.withdrawalMethod === 'CARD_NUMBER' ? 'Карта получателя' : 'Получатель'
+    withdrawalMethod === 'CARD_NUMBER' ? 'Карта получателя' : 'Получатель'
   )
 }
 
 function getRecipientRequisites(withdrawal: Withdrawal): string {
-  if (withdrawal.withdrawalMethod === 'SBP') {
+  const withdrawalMethod = getEffectiveWithdrawalMethod(withdrawal.withdrawalMethod)
+  if (withdrawalMethod === 'SBP') {
     return withdrawal.recipientPhone ? formatPhone(withdrawal.recipientPhone) : '—'
   }
-  if (withdrawal.withdrawalMethod === 'CARD_NUMBER') {
+  if (withdrawalMethod === 'CARD_NUMBER') {
     return formatCardNumber(withdrawal.recipientCardNumber)
   }
   return formatAccountNumber(withdrawal.recipientAccountNumber)
 }
 
 function getPaymentContext(withdrawal: Withdrawal): string {
+  const withdrawalMethod = getEffectiveWithdrawalMethod(withdrawal.withdrawalMethod)
   return [
     getPayerBankTypeTitle(withdrawal.payerBankType),
-    getWithdrawalMethodTitle(withdrawal.withdrawalMethod),
-    withdrawal.thirdPartyTransfer ? '3 лицо' : 'личная / жена',
+    getWithdrawalMethodTitle(withdrawalMethod),
+    getTransferPartyTitle(withdrawal.thirdPartyTransfer),
   ].join(' · ')
 }
 
