@@ -16,7 +16,9 @@ export function getWithdrawalAmountCopyValue(withdrawal: Withdrawal): string {
 }
 
 export function getWithdrawalPaidAmountText(withdrawal: Withdrawal): string {
-  return formatRub(withdrawal.bybitOrderAmountRub ?? withdrawal.amountRub ?? withdrawal.amountMaxRub)
+  return formatRub(
+    withdrawal.bybitOrderAmountRub ?? withdrawal.amountRub ?? withdrawal.amountMaxRub,
+  )
 }
 
 export function formatWithdrawalAmountRange(
