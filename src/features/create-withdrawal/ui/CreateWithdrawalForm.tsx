@@ -399,7 +399,9 @@ export function CreateWithdrawalForm({ workspacePublicId }: Props) {
               </label>
             ))}
           </div>
-          {errors.amountMode && <span className="form-field__error">{errors.amountMode.message}</span>}
+          {errors.amountMode && (
+            <span className="form-field__error">{errors.amountMode.message}</span>
+          )}
         </fieldset>
 
         {amountMode === 'FIXED' ? (
@@ -716,7 +718,9 @@ function AdvertisementPreviewBlock({
       ? formatNumber(null)
       : `${formatNumber(preview.quantityUsdt)} USDT`
   const adRangeText =
-    preview == null ? formatNumber(null) : formatWithdrawalAmountRange(preview.minRub, preview.maxRub)
+    preview == null
+      ? formatNumber(null)
+      : formatWithdrawalAmountRange(preview.minRub, preview.maxRub)
   const requestRangeText =
     preview == null
       ? formatNumber(null)
