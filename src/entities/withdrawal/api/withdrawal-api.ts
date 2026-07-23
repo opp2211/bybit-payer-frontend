@@ -1,4 +1,6 @@
 import type {
+  AiChatAgent,
+  AiChatAgentModeRequest,
   CreateWithdrawalRequest,
   SendChatMessageRequest,
   Withdrawal,
@@ -57,6 +59,21 @@ export const withdrawalApi = {
       {
         method: 'POST',
         body: JSON.stringify({ message } satisfies SendChatMessageRequest),
+      },
+    ),
+  setChatAgentMode: (workspacePublicId: string, withdrawalPublicId: string, enabled: boolean) =>
+    apiRequest<AiChatAgent>(
+      `/api/workspaces/${workspacePublicId}/withdrawals/${withdrawalPublicId}/chat-agent/mode`,
+      {
+        method: 'POST',
+        body: JSON.stringify({ enabled } satisfies AiChatAgentModeRequest),
+      },
+    ),
+  sendChatAgentSuggestion: (workspacePublicId: string, withdrawalPublicId: string) =>
+    apiRequest<AiChatAgent>(
+      `/api/workspaces/${workspacePublicId}/withdrawals/${withdrawalPublicId}/chat-agent/suggestion/send`,
+      {
+        method: 'POST',
       },
     ),
   getReceiptPdfUrl: (workspacePublicId: string, withdrawalPublicId: string, receiptId: number) =>

@@ -139,11 +139,27 @@ export type EmailReceiptCheck = {
   createdAt: string
 }
 
+export type AiChatAgent = {
+  exists: boolean
+  enabled: boolean
+  status: string | null
+  statusTitle: string | null
+  currentStep: string | null
+  currentStepTitle: string | null
+  autoReceiptEnabled: boolean
+  operatorRequired: boolean
+  suggestedMessages: string[]
+  suggestedReason: string | null
+  suggestedAt: string | null
+  lastDecisionSummary: string | null
+}
+
 export type WithdrawalDetails = {
   withdrawal: Withdrawal
   events: WithdrawalEvent[]
   chatMessages: ChatMessageLog[]
   receiptChecks: EmailReceiptCheck[]
+  chatAgent: AiChatAgent
 }
 
 export type CreateWithdrawalRequest = {
@@ -175,4 +191,8 @@ export type WithdrawalAdvertisementPreview = {
 
 export type SendChatMessageRequest = {
   message: string
+}
+
+export type AiChatAgentModeRequest = {
+  enabled: boolean
 }
