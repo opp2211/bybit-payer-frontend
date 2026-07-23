@@ -138,6 +138,16 @@
   grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
 }
 
+.amount-mode-toggle {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.amount-range-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
 .form-checkbox {
   display: flex;
   align-items: center;
@@ -413,6 +423,10 @@
 
 @media (max-width: 520px) {
   .payer-bank-toggle {
+    grid-template-columns: 1fr;
+  }
+
+  .amount-range-grid {
     grid-template-columns: 1fr;
   }
 

@@ -4,6 +4,7 @@ import { toast } from 'sonner'
 
 import { useForeignOrdersQuery } from '@/entities/foreign-order/model/queries'
 import { useSystemStatusQuery } from '@/entities/system/model/queries'
+import { getWithdrawalPaidAmountText } from '@/entities/withdrawal/lib/amounts'
 import {
   useActiveWithdrawalsQuery,
   useCompletedWithdrawalsQuery,
@@ -16,7 +17,6 @@ import {
   wasCompletionSoundPlayed,
 } from '@/shared/lib/completion-sound'
 import { getErrorMessage } from '@/shared/lib/errors'
-import { formatRub } from '@/shared/lib/formatters'
 import { Card } from '@/shared/ui/Card'
 import { EmptyState, ErrorState, LoadingState } from '@/shared/ui/QueryState'
 import { ActiveWithdrawals } from '@/widgets/dashboard/ActiveWithdrawals'
@@ -42,7 +42,7 @@ export function DashboardPage() {
 
     const newest = unseen[0]
     toast.success(`Заявка ${newest.publicId} выполнена`, {
-      description: `${formatRub(newest.amountRub)} успешно выплачено.`,
+      description: `${getWithdrawalPaidAmountText(newest)} успешно выплачено.`,
       duration: 7_000,
     })
   }, [completedQuery.data])
