@@ -10,6 +10,7 @@ export type WithdrawalStatus =
 
 export type RecipientBank = string
 
+export type WithdrawalAmountMode = 'FIXED' | 'RANGE'
 export type PayerBankType = 'TBANK_AUTO' | 'SBERBANK' | 'ANY_BANK'
 export type WithdrawalMethod = 'SBP' | 'CARD_NUMBER' | 'ACCOUNT_NUMBER'
 
@@ -47,7 +48,10 @@ export const getTransferPartyTitle = (thirdPartyTransfer: boolean | null | undef
 export type Withdrawal = {
   id: number
   publicId: string
-  amountRub: number
+  amountMode: WithdrawalAmountMode
+  amountRub: number | null
+  amountMinRub: number
+  amountMaxRub: number
   recipientPhone: string | null
   recipientBank: RecipientBank | null
   recipientBankTitle: string | null
@@ -143,7 +147,10 @@ export type WithdrawalDetails = {
 }
 
 export type CreateWithdrawalRequest = {
-  amountRub: number
+  amountMode: WithdrawalAmountMode
+  amountRub: number | null
+  amountMinRub: number | null
+  amountMaxRub: number | null
   recipientPhone: string
   recipientBank: RecipientBank
   recipientName: string
@@ -160,6 +167,8 @@ export type WithdrawalAdvertisementPreview = {
   rate: number | null
   minRub: number
   maxRub: number
+  amountMinRub: number
+  amountMaxRub: number
   quantityUsdt: number | null
   description: string
 }

@@ -5,6 +5,10 @@ import { toast } from 'sonner'
 
 import { BybitOrderLink } from '@/entities/bybit-order/ui/BybitOrderLink'
 import {
+  getWithdrawalAmountCopyValue,
+  getWithdrawalAmountText,
+} from '@/entities/withdrawal/lib/amounts'
+import {
   getEffectiveWithdrawalMethod,
   getPayerBankTypeTitle,
   getTransferPartyTitle,
@@ -22,7 +26,7 @@ import {
   formatCardNumber,
   formatDateTime,
   formatPhone,
-  formatRub,
+  formatRub as formatRubBase,
 } from '@/shared/lib/formatters'
 import { Badge } from '@/shared/ui/Badge'
 import { Button } from '@/shared/ui/Button'
@@ -97,6 +101,10 @@ export function ActiveWithdrawals({ data = [], loading, error, onRetry }: Props)
   const cancelMutation = useCancelWithdrawal()
   const releaseMutation = useReleaseWithdrawal()
   const navigate = useNavigate()
+  const formatRub = (value: number | null | undefined) =>
+    value == null && selectedForCancel?.amountMode === 'RANGE'
+      ? getWithdrawalAmountText(selectedForCancel)
+      : formatRubBase(value)
   const withdrawals = useMemo(
     () =>
       [...data].sort(
@@ -190,10 +198,10 @@ export function ActiveWithdrawals({ data = [], loading, error, onRetry }: Props)
                       <div className="cell-primary">
                         <CopyValue
                           className="withdrawal-amount-copy"
-                          value={String(withdrawal.amountRub)}
+                          value={getWithdrawalAmountCopyValue(withdrawal)}
                           successMessage="Сумма заявки скопирована"
                         >
-                          {formatRub(withdrawal.amountRub)}
+                          {getWithdrawalAmountText(withdrawal)}
                         </CopyValue>
                         <span className="mono">{withdrawal.publicId}</span>
                       </div>

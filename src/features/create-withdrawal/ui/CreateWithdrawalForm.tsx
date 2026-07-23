@@ -11,13 +11,14 @@ import {
   Send,
   UserRound,
 } from 'lucide-react'
-import { useEffect, useMemo } from 'react'
-import { useForm, useWatch, type UseFormRegister } from 'react-hook-form'
+import { useEffect, useMemo, useRef } from 'react'
+import { useForm, useWatch, type Resolver, type UseFormRegister } from 'react-hook-form'
 import { toast } from 'sonner'
 import { z } from 'zod'
 
 import { useActiveBanksQuery } from '@/entities/bank/model/queries'
 import { useSystemStatusQuery } from '@/entities/system/model/queries'
+import { formatWithdrawalAmountRange } from '@/entities/withdrawal/lib/amounts'
 import { useWithdrawalAdvertisementPreviewQuery } from '@/entities/withdrawal/model/queries'
 import {
   payerBankTypeLabels,
@@ -25,6 +26,7 @@ import {
   type CreateWithdrawalRequest,
   type PayerBankType,
   type WithdrawalAdvertisementPreview,
+  type WithdrawalAmountMode,
   type WithdrawalMethod,
 } from '@/entities/withdrawal/model/types'
 import { useCreateWithdrawal } from '@/features/create-withdrawal/model/useCreateWithdrawal'
@@ -34,7 +36,13 @@ import { Button } from '@/shared/ui/Button'
 import { Card } from '@/shared/ui/Card'
 
 const payerBankTypeValues = ['TBANK_AUTO', 'SBERBANK', 'ANY_BANK'] as const
+const amountModeValues = ['FIXED', 'RANGE'] as const
 const withdrawalMethodValues = ['SBP', 'CARD_NUMBER', 'ACCOUNT_NUMBER'] as const
+
+const amountModeOptions = [
+  { value: 'FIXED', label: 'Фиксированная сумма' },
+  { value: 'RANGE', label: 'Диапазон' },
+] satisfies Array<{ value: WithdrawalAmountMode; label: string }>
 
 const payerBankTypeOptions = payerBankTypeValues.map((value) => ({
   value,
@@ -55,12 +63,24 @@ const phoneIsValid = (value: string) => {
 
 const digitsOnly = (value: string) => value.replace(/\D/g, '')
 
+const emptyNumberToUndefined = (value: unknown) =>
+  typeof value === 'number' && Number.isNaN(value) ? undefined : value
+
+const optionalIntegerAmountSchema = z.preprocess(
+  emptyNumberToUndefined,
+  z
+    .number()
+    .int('Сумма должна быть целым числом')
+    .positive('Сумма должна быть больше нуля')
+    .optional(),
+)
+
 const schema = z
   .object({
-    amountRub: z
-      .number({ error: 'Введите сумму' })
-      .int('Сумма должна быть целым числом')
-      .positive('Сумма должна быть больше нуля'),
+    amountMode: z.enum(amountModeValues),
+    amountRub: optionalIntegerAmountSchema,
+    amountMinRub: optionalIntegerAmountSchema,
+    amountMaxRub: optionalIntegerAmountSchema,
     payerBankType: z.enum(payerBankTypeValues),
     requireSenderFirstParty: z.boolean(),
     withdrawalMethod: z.enum(withdrawalMethodValues),
@@ -73,6 +93,30 @@ const schema = z
     recipientCardTbank: z.boolean(),
   })
   .superRefine((values, ctx) => {
+    if (values.amountMode === 'FIXED') {
+      if (values.amountRub == null) {
+        ctx.addIssue({ code: 'custom', path: ['amountRub'], message: 'Введите сумму' })
+      }
+    } else {
+      if (values.amountMinRub == null) {
+        ctx.addIssue({ code: 'custom', path: ['amountMinRub'], message: 'Введите минимум' })
+      }
+      if (values.amountMaxRub == null) {
+        ctx.addIssue({ code: 'custom', path: ['amountMaxRub'], message: 'Введите максимум' })
+      }
+      if (
+        values.amountMinRub != null &&
+        values.amountMaxRub != null &&
+        values.amountMaxRub <= values.amountMinRub
+      ) {
+        ctx.addIssue({
+          code: 'custom',
+          path: ['amountMaxRub'],
+          message: 'Максимум должен быть больше минимума',
+        })
+      }
+    }
+
     const allowedMethods = withdrawalMethodOptionsByPayerBank[values.payerBankType]
     if (!allowedMethods.includes(values.withdrawalMethod)) {
       ctx.addIssue({
@@ -150,6 +194,9 @@ type Props = {
   workspacePublicId: string
 }
 
+const isValidIntegerAmount = (value: number | undefined) =>
+  typeof value === 'number' && Number.isInteger(value) && value > 0
+
 export function CreateWithdrawalForm({ workspacePublicId }: Props) {
   const mutation = useCreateWithdrawal(workspacePublicId)
   const banksQuery = useActiveBanksQuery()
@@ -162,8 +209,12 @@ export function CreateWithdrawalForm({ workspacePublicId }: Props) {
     control,
     formState: { errors },
   } = useForm<FormValues>({
-    resolver: zodResolver(schema),
+    resolver: zodResolver(schema) as Resolver<FormValues>,
     defaultValues: {
+      amountMode: 'FIXED',
+      amountRub: undefined,
+      amountMinRub: undefined,
+      amountMaxRub: undefined,
       recipientPhone: '',
       recipientBank: '',
       recipientName: '',
@@ -177,25 +228,53 @@ export function CreateWithdrawalForm({ workspacePublicId }: Props) {
     },
   })
 
+  const amountMode = useWatch({ control, name: 'amountMode' })
   const amountRub = useWatch({ control, name: 'amountRub' })
+  const amountMinRub = useWatch({ control, name: 'amountMinRub' })
+  const amountMaxRub = useWatch({ control, name: 'amountMaxRub' })
   const payerBankType = useWatch({ control, name: 'payerBankType' })
   const requireSenderFirstParty = useWatch({ control, name: 'requireSenderFirstParty' })
   const withdrawalMethod = useWatch({ control, name: 'withdrawalMethod' })
   const thirdPartyTransfer = useWatch({ control, name: 'thirdPartyTransfer' })
   const recipientCardTbank = useWatch({ control, name: 'recipientCardTbank' })
+  const previousAmountModeRef = useRef<WithdrawalAmountMode>(amountMode)
   const withdrawalMethodOptions = withdrawalMethodOptionsByPayerBank[payerBankType]
   const methodLocked = withdrawalMethodOptions.length === 1
   const banks = banksQuery.data ?? []
   const banksUnavailable = banksQuery.isPending || banksQuery.isError || banks.length === 0
   const requiresRecipientBank = withdrawalMethod === 'SBP'
   const status = systemQuery.data
-  const previewAmountRub =
-    typeof amountRub === 'number' && Number.isInteger(amountRub) && amountRub > 0 ? amountRub : null
+  const currentAdRangeText =
+    status?.currentMinRub != null && status.currentMaxRub != null
+      ? `${formatRub(status.currentMinRub)} - ${formatRub(status.currentMaxRub)}`
+      : 'рассчитывается после синхронизации'
+
+  useEffect(() => {
+    if (previousAmountModeRef.current === amountMode) return
+    setValue('amountRub', undefined, { shouldDirty: true, shouldValidate: true })
+    setValue('amountMinRub', undefined, { shouldDirty: true, shouldValidate: true })
+    setValue('amountMaxRub', undefined, { shouldDirty: true, shouldValidate: true })
+    previousAmountModeRef.current = amountMode
+  }, [amountMode, setValue])
+
   const previewPayload = useMemo<CreateWithdrawalRequest | null>(() => {
-    if (previewAmountRub == null) return null
+    const fixedMode = amountMode === 'FIXED'
+    const rangeMode = amountMode === 'RANGE'
+    if (fixedMode && !isValidIntegerAmount(amountRub)) return null
+    if (
+      rangeMode &&
+      (!isValidIntegerAmount(amountMinRub) ||
+        !isValidIntegerAmount(amountMaxRub) ||
+        amountMaxRub! <= amountMinRub!)
+    ) {
+      return null
+    }
 
     return {
-      amountRub: previewAmountRub,
+      amountMode,
+      amountRub: fixedMode ? amountRub! : null,
+      amountMinRub: rangeMode ? amountMinRub! : null,
+      amountMaxRub: rangeMode ? amountMaxRub! : null,
       payerBankType,
       requireSenderFirstParty: Boolean(requireSenderFirstParty),
       withdrawalMethod,
@@ -208,8 +287,11 @@ export function CreateWithdrawalForm({ workspacePublicId }: Props) {
       recipientAccountNumber: '',
     }
   }, [
+    amountMaxRub,
+    amountMinRub,
+    amountMode,
+    amountRub,
     payerBankType,
-    previewAmountRub,
     recipientCardTbank,
     requireSenderFirstParty,
     thirdPartyTransfer,
@@ -235,8 +317,12 @@ export function CreateWithdrawalForm({ workspacePublicId }: Props) {
       const isSbp = values.withdrawalMethod === 'SBP'
       const isCard = values.withdrawalMethod === 'CARD_NUMBER'
       const isAccount = values.withdrawalMethod === 'ACCOUNT_NUMBER'
+      const fixedMode = values.amountMode === 'FIXED'
       const created = await mutation.mutateAsync({
-        amountRub: values.amountRub,
+        amountMode: values.amountMode,
+        amountRub: fixedMode ? values.amountRub! : null,
+        amountMinRub: fixedMode ? null : values.amountMinRub!,
+        amountMaxRub: fixedMode ? null : values.amountMaxRub!,
         payerBankType: values.payerBankType,
         requireSenderFirstParty: values.requireSenderFirstParty,
         withdrawalMethod: values.withdrawalMethod,
@@ -264,11 +350,6 @@ export function CreateWithdrawalForm({ workspacePublicId }: Props) {
       })
     }
   })
-
-  const rangeText =
-    status?.currentMinRub != null && status.currentMaxRub != null
-      ? `${formatRub(status.currentMinRub)} - ${formatRub(status.currentMaxRub)}`
-      : 'рассчитывается после синхронизации'
 
   return (
     <Card
@@ -301,28 +382,97 @@ export function CreateWithdrawalForm({ workspacePublicId }: Props) {
           <span>Требовать 1 лицо от отправителя</span>
         </label>
 
-        <div className="form-field">
-          <label htmlFor="amountRub">Сумма</label>
-          <div className="input-shell">
-            <Banknote size={17} />
-            <input
-              id="amountRub"
-              type="number"
-              min="1"
-              step="1"
-              inputMode="numeric"
-              placeholder="10000"
-              aria-invalid={Boolean(errors.amountRub)}
-              {...register('amountRub', { valueAsNumber: true })}
-            />
-            <span className="input-shell__suffix">RUB</span>
+        <fieldset className="form-field payer-bank-field">
+          <legend>
+            <Banknote size={14} />
+            Диапазон заявки
+          </legend>
+          <div
+            className="payer-bank-toggle amount-mode-toggle"
+            role="radiogroup"
+            aria-label="Диапазон заявки"
+          >
+            {amountModeOptions.map((option) => (
+              <label key={option.value} className="payer-bank-toggle__option">
+                <input type="radio" value={option.value} {...register('amountMode')} />
+                <span>{option.label}</span>
+              </label>
+            ))}
           </div>
-          {errors.amountRub ? (
-            <span className="form-field__error">{errors.amountRub.message}</span>
-          ) : (
-            <span className="form-field__hint">Диапазон объявления: {rangeText}</span>
-          )}
-        </div>
+          {errors.amountMode && <span className="form-field__error">{errors.amountMode.message}</span>}
+        </fieldset>
+
+        {amountMode === 'FIXED' ? (
+          <div className="form-field">
+            <label htmlFor="amountRub">Сумма заявки</label>
+            <div className="input-shell">
+              <Banknote size={17} />
+              <input
+                id="amountRub"
+                type="number"
+                min="1"
+                step="1"
+                inputMode="numeric"
+                placeholder="10000"
+                aria-invalid={Boolean(errors.amountRub)}
+                {...register('amountRub', { valueAsNumber: true })}
+              />
+              <span className="input-shell__suffix">RUB</span>
+            </div>
+            {errors.amountRub ? (
+              <span className="form-field__error">{errors.amountRub.message}</span>
+            ) : (
+              <span className="form-field__hint">Диапазон объявления: {currentAdRangeText}</span>
+            )}
+          </div>
+        ) : (
+          <div className="form-field">
+            <label>Диапазон заявки</label>
+            <div className="amount-range-grid">
+              <div className="form-field">
+                <div className="input-shell">
+                  <Banknote size={17} />
+                  <input
+                    type="number"
+                    min="1"
+                    step="1"
+                    inputMode="numeric"
+                    placeholder="20000"
+                    aria-label="Минимальная сумма заявки"
+                    aria-invalid={Boolean(errors.amountMinRub)}
+                    {...register('amountMinRub', { valueAsNumber: true })}
+                  />
+                  <span className="input-shell__suffix">MIN</span>
+                </div>
+                {errors.amountMinRub && (
+                  <span className="form-field__error">{errors.amountMinRub.message}</span>
+                )}
+              </div>
+              <div className="form-field">
+                <div className="input-shell">
+                  <Banknote size={17} />
+                  <input
+                    type="number"
+                    min="1"
+                    step="1"
+                    inputMode="numeric"
+                    placeholder="25000"
+                    aria-label="Максимальная сумма заявки"
+                    aria-invalid={Boolean(errors.amountMaxRub)}
+                    {...register('amountMaxRub', { valueAsNumber: true })}
+                  />
+                  <span className="input-shell__suffix">MAX</span>
+                </div>
+                {errors.amountMaxRub && (
+                  <span className="form-field__error">{errors.amountMaxRub.message}</span>
+                )}
+              </div>
+            </div>
+            {!errors.amountMinRub && !errors.amountMaxRub && (
+              <span className="form-field__hint">Диапазон объявления: {currentAdRangeText}</span>
+            )}
+          </div>
+        )}
 
         <fieldset className="form-field payer-bank-field">
           <legend>
@@ -565,10 +715,14 @@ function AdvertisementPreviewBlock({
     preview?.quantityUsdt == null
       ? formatNumber(null)
       : `${formatNumber(preview.quantityUsdt)} USDT`
-  const rangeText =
+  const adRangeText =
+    preview == null ? formatNumber(null) : formatWithdrawalAmountRange(preview.minRub, preview.maxRub)
+  const requestRangeText =
     preview == null
       ? formatNumber(null)
-      : `${formatRub(preview.minRub)} - ${formatRub(preview.maxRub)}`
+      : preview.amountMinRub === preview.amountMaxRub
+        ? formatRub(preview.amountMinRub)
+        : formatWithdrawalAmountRange(preview.amountMinRub, preview.amountMaxRub)
 
   return (
     <section className="ad-preview" aria-live="polite">
@@ -594,8 +748,12 @@ function AdvertisementPreviewBlock({
               <dd>{rateText}</dd>
             </div>
             <div>
-              <dt>Диапазон</dt>
-              <dd>{rangeText}</dd>
+              <dt>Диапазон объявления</dt>
+              <dd>{adRangeText}</dd>
+            </div>
+            <div>
+              <dt>Диапазон заявки</dt>
+              <dd>{requestRangeText}</dd>
             </div>
             <div>
               <dt>Объем USDT</dt>

@@ -4,6 +4,10 @@ import { toast } from 'sonner'
 
 import { BybitOrderLink } from '@/entities/bybit-order/ui/BybitOrderLink'
 import {
+  getWithdrawalAmountCopyValue,
+  getWithdrawalAmountText,
+} from '@/entities/withdrawal/lib/amounts'
+import {
   getEffectiveWithdrawalMethod,
   getPayerBankTypeTitle,
   getTransferPartyTitle,
@@ -19,7 +23,6 @@ import {
   formatCardNumber,
   formatDateTime,
   formatPhone,
-  formatRub,
 } from '@/shared/lib/formatters'
 import { Badge } from '@/shared/ui/Badge'
 import { Button } from '@/shared/ui/Button'
@@ -137,10 +140,10 @@ export function CompletedWithdrawals({ data = [], loading, error, onRetry }: Pro
                     <div className="cell-primary">
                       <CopyValue
                         className="withdrawal-amount-copy"
-                        value={String(withdrawal.amountRub)}
+                        value={getWithdrawalAmountCopyValue(withdrawal)}
                         successMessage="Сумма заявки скопирована"
                       >
-                        {formatRub(withdrawal.amountRub)}
+                        {getWithdrawalAmountText(withdrawal)}
                       </CopyValue>
                       <span className="mono">{withdrawal.publicId}</span>
                     </div>

@@ -25,6 +25,10 @@ import { Link, useParams } from 'react-router-dom'
 import { toast } from 'sonner'
 
 import { BybitOrderLink } from '@/entities/bybit-order/ui/BybitOrderLink'
+import {
+  getWithdrawalAmountCopyValue,
+  getWithdrawalAmountText,
+} from '@/entities/withdrawal/lib/amounts'
 import { withdrawalApi } from '@/entities/withdrawal/api/withdrawal-api'
 import { useWithdrawalDetailsQuery } from '@/entities/withdrawal/model/queries'
 import {
@@ -466,10 +470,10 @@ export function WithdrawalDetailsPage() {
             </div>
             <CopyValue
               className="details-hero__amount"
-              value={String(withdrawal.amountRub)}
+              value={getWithdrawalAmountCopyValue(withdrawal)}
               successMessage="Сумма заявки скопирована"
             >
-              {formatRub(withdrawal.amountRub)}
+              {getWithdrawalAmountText(withdrawal)}
             </CopyValue>
             <div className="details-hero__meta">
               <WithdrawalStatusBadge status={withdrawal.status} title={withdrawal.statusTitle} />
