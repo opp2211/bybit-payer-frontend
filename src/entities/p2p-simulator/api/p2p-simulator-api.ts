@@ -1,7 +1,4 @@
-import type {
-  FakeBybitAd,
-  FakeBybitOrder,
-} from '@/entities/p2p-simulator/model/types'
+import type { FakeBybitAd, FakeBybitOrder } from '@/entities/p2p-simulator/model/types'
 import { apiRequest } from '@/shared/api/api-client'
 
 const BASE_PATH = '/api/local/bybit-simulator'
