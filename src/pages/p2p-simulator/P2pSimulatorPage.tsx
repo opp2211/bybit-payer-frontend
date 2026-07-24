@@ -440,7 +440,10 @@ export function P2pSimulatorPage() {
         {adsQuery.isLoading && !adsQuery.data ? (
           <LoadingState rows={4} />
         ) : adsQuery.error && !adsQuery.data ? (
-          <ErrorState message={getErrorMessage(adsQuery.error)} onRetry={() => void adsQuery.refetch()} />
+          <ErrorState
+            message={getErrorMessage(adsQuery.error)}
+            onRetry={() => void adsQuery.refetch()}
+          />
         ) : (adsQuery.data ?? []).length === 0 ? (
           <EmptyState
             title="Опубликованных объявлений нет"
