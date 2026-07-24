@@ -104,6 +104,13 @@ export type WithdrawalEvent = {
 }
 
 export type ChatMessageSenderType = 'USER' | 'BOT' | 'COUNTERPARTY' | 'SUPPORT' | 'SYSTEM'
+export type AiChatAgentMode = 'ENABLED' | 'DISABLED' | 'DRY_RUN'
+export type AiChatAction =
+  | 'SEND_MESSAGES'
+  | 'SEND_REQUISITES'
+  | 'WAIT'
+  | 'REQUEST_CANCELLATION'
+  | 'HANDOFF'
 
 export type ChatMessageContentType = 'TEXT' | 'IMAGE' | 'PDF' | 'VIDEO' | 'UNKNOWN'
 
@@ -162,7 +169,8 @@ export type EmailReceiptCheck = {
 
 export type AiChatAgent = {
   exists: boolean
-  enabled: boolean
+  mode: AiChatAgentMode | null
+  modeTitle: string | null
   status: string | null
   statusTitle: string | null
   currentStep: string | null
@@ -173,6 +181,10 @@ export type AiChatAgent = {
   suggestedReason: string | null
   suggestedAt: string | null
   lastDecisionSummary: string | null
+  lastAction: AiChatAction | null
+  conversationSummary: string | null
+  summaryUpdatedAt: string | null
+  operatorHandoffReason: string | null
 }
 
 export type WithdrawalDetails = {
@@ -215,5 +227,5 @@ export type SendChatMessageRequest = {
 }
 
 export type AiChatAgentModeRequest = {
-  enabled: boolean
+  mode: AiChatAgentMode
 }

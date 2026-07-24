@@ -479,6 +479,78 @@
   gap: 7px;
 }
 
+.ai-chat-agent__modes {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(88px, 1fr));
+  overflow: hidden;
+  border: 1px solid var(--color-border-strong);
+  border-radius: 7px;
+  background: var(--color-surface);
+}
+
+.ai-chat-agent__modes button {
+  display: inline-flex;
+  height: 30px;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  padding: 0 9px;
+  border-right: 1px solid var(--color-border);
+  background: transparent;
+  color: var(--color-text-secondary);
+  font-size: 9px;
+  font-weight: 650;
+  cursor: pointer;
+}
+
+.ai-chat-agent__modes button:last-child {
+  border-right: 0;
+}
+
+.ai-chat-agent__modes button:hover:not(:disabled) {
+  background: var(--color-surface-hover);
+}
+
+.ai-chat-agent__modes button.is-active {
+  background: var(--color-primary);
+  color: #fff;
+}
+
+.ai-chat-agent__modes button:disabled {
+  cursor: wait;
+  opacity: 0.65;
+}
+
+.ai-chat-agent__state {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.ai-chat-agent__state > div {
+  min-width: 0;
+  padding: 8px 10px;
+  border: 1px solid var(--color-border);
+  border-radius: 7px;
+  background: var(--color-surface);
+}
+
+.ai-chat-agent__state span,
+.ai-chat-agent__state strong {
+  display: block;
+}
+
+.ai-chat-agent__state span {
+  margin-bottom: 2px;
+  color: var(--color-text-muted);
+  font-size: 8px;
+}
+
+.ai-chat-agent__state strong {
+  overflow-wrap: anywhere;
+  font-size: 10px;
+}
+
 .ai-chat-agent__note {
   padding: 8px 10px;
   border-radius: 8px;
@@ -486,6 +558,33 @@
   color: var(--color-text-secondary);
   font-size: 10px;
   line-height: 1.45;
+}
+
+.ai-chat-agent__note strong,
+.ai-chat-agent__note span,
+.ai-chat-agent__note small {
+  display: block;
+}
+
+.ai-chat-agent__note strong {
+  margin-bottom: 3px;
+  color: var(--color-text);
+  font-size: 9px;
+}
+
+.ai-chat-agent__note span {
+  overflow-wrap: anywhere;
+}
+
+.ai-chat-agent__note small {
+  margin-top: 4px;
+  color: var(--color-text-muted);
+  font-size: 8px;
+}
+
+.ai-chat-agent__note.is-warning {
+  background: var(--color-warning-soft);
+  color: var(--color-warning);
 }
 
 .ai-chat-agent__suggestion {
@@ -859,8 +958,16 @@
   }
 
   .ai-chat-agent__actions,
-  .ai-chat-agent__actions .button {
+  .ai-chat-agent__modes {
     width: 100%;
+  }
+
+  .ai-chat-agent__actions {
+    justify-content: flex-start;
+  }
+
+  .ai-chat-agent__state {
+    grid-template-columns: 1fr;
   }
 
   .details-grid {
