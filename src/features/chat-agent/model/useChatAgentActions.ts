@@ -2,7 +2,11 @@ import { useMutation, useQueryClient } from '@tanstack/react-query'
 
 import { withdrawalApi } from '@/entities/withdrawal/api/withdrawal-api'
 import { withdrawalKeys } from '@/entities/withdrawal/model/queries'
-import type { AiChatAgent, WithdrawalDetails } from '@/entities/withdrawal/model/types'
+import type {
+  AiChatAgent,
+  AiChatAgentMode,
+  WithdrawalDetails,
+} from '@/entities/withdrawal/model/types'
 
 type ChatAgentVariables = {
   workspacePublicId: string
@@ -10,7 +14,7 @@ type ChatAgentVariables = {
 }
 
 type ChatAgentModeVariables = ChatAgentVariables & {
-  enabled: boolean
+  mode: AiChatAgentMode
 }
 
 function updateChatAgent(
@@ -24,8 +28,8 @@ export function useSetChatAgentMode() {
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: ({ workspacePublicId, withdrawalPublicId, enabled }: ChatAgentModeVariables) =>
-      withdrawalApi.setChatAgentMode(workspacePublicId, withdrawalPublicId, enabled),
+    mutationFn: ({ workspacePublicId, withdrawalPublicId, mode }: ChatAgentModeVariables) =>
+      withdrawalApi.setChatAgentMode(workspacePublicId, withdrawalPublicId, mode),
     onSuccess: (chatAgent, { workspacePublicId, withdrawalPublicId }) => {
       queryClient.setQueryData<WithdrawalDetails>(
         withdrawalKeys.details(workspacePublicId, withdrawalPublicId),
