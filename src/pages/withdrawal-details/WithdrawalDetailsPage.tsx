@@ -6,9 +6,11 @@ import {
   CheckCircle2,
   CircleDot,
   CreditCard,
+  ExternalLink,
   FileCheck2,
   FileText,
   Hash,
+  ImageIcon,
   Landmark,
   Mail,
   MessageSquareText,
@@ -19,6 +21,7 @@ import {
   Unlock,
   UserCheck,
   UserRound,
+  Video,
   WalletCards,
   X,
 } from 'lucide-react'
@@ -39,6 +42,7 @@ import {
   getTransferPartyTitle,
   getWithdrawalMethodTitle,
   type AiChatAgent,
+  type ChatMessageLog,
   type EmailReceiptCheck,
   type Withdrawal,
   type WithdrawalEvent,
@@ -216,6 +220,123 @@ function AiChatAgentPanel({
         </div>
       )}
     </section>
+  )
+}
+
+function ChatMessageItem({ message }: { message: ChatMessageLog }) {
+  if (message.senderType === 'SYSTEM') {
+    return (
+      <div className="chat-system-message">
+        <span>{message.content.text || 'Системное сообщение Bybit'}</span>
+        <small>{formatDateTime(message.createdAt, true)}</small>
+      </div>
+    )
+  }
+
+  const tone =
+    message.senderType === 'USER' || message.senderType === 'BOT'
+      ? 'outgoing'
+      : message.senderType === 'SUPPORT'
+        ? 'support'
+        : 'incoming'
+
+  return (
+    <article className={`chat-message chat-message--${tone}`}>
+      <div className="chat-message__author">
+        <strong>{message.authorName}</strong>
+        <span>{formatDateTime(message.createdAt, true)}</span>
+      </div>
+      <ChatMessageBody message={message} />
+    </article>
+  )
+}
+
+function ChatMessageBody({ message }: { message: ChatMessageLog }) {
+  const { content } = message
+
+  if (content.type === 'TEXT') {
+    return <p>{content.text}</p>
+  }
+
+  if (content.type === 'IMAGE') {
+    return content.url ? (
+      <a
+        className="chat-image"
+        href={content.url}
+        target="_blank"
+        rel="noreferrer"
+        aria-label={content.fileName || 'Открыть изображение'}
+      >
+        <img src={content.url} alt={content.fileName || 'Изображение из чата'} loading="lazy" />
+      </a>
+    ) : (
+      <AttachmentFallback icon={<ImageIcon size={16} />} title="Изображение недоступно" />
+    )
+  }
+
+  if (content.type === 'VIDEO') {
+    return content.url ? (
+      <video className="chat-video" src={content.url} controls preload="metadata" />
+    ) : (
+      <AttachmentFallback icon={<Video size={16} />} title="Видео недоступно" />
+    )
+  }
+
+  if (content.type === 'PDF') {
+    return (
+      <AttachmentLink
+        href={content.url}
+        icon={<FileText size={16} />}
+        title={content.fileName || 'PDF-файл'}
+      />
+    )
+  }
+
+  return content.url ? (
+    <AttachmentLink
+      href={content.url}
+      icon={<FileText size={16} />}
+      title={content.fileName || 'Файл'}
+    />
+  ) : (
+    <p>{content.text || 'Неподдерживаемое сообщение'}</p>
+  )
+}
+
+function AttachmentLink({
+  href,
+  icon,
+  title,
+}: {
+  href: string | null
+  icon: ReactNode
+  title: string
+}) {
+  if (!href) {
+    return <AttachmentFallback icon={icon} title={`${title} недоступен`} />
+  }
+
+  return (
+    <a className="chat-attachment" href={href} target="_blank" rel="noreferrer">
+      <span className="chat-attachment__icon">{icon}</span>
+      <span>
+        <strong>{title}</strong>
+        <small>Открыть файл</small>
+      </span>
+      <ExternalLink size={14} />
+    </a>
+  )
+}
+
+function AttachmentFallback({ icon, title }: { icon: ReactNode; title: string }) {
+  return (
+    <div className="chat-attachment chat-attachment--missing">
+      <span className="chat-attachment__icon">{icon}</span>
+      <span>
+        <strong>{title}</strong>
+        <small>Ссылка отсутствует</small>
+      </span>
+    </div>
   )
 }
 
@@ -748,25 +869,9 @@ export function WithdrawalDetailsPage() {
                     description="Переписка появится после привязки Bybit-ордера."
                   />
                 ) : (
-                  chatMessages.map((message) =>
-                    message.direction === 'SYSTEM' ? (
-                      <div className="chat-system-message" key={message.id}>
-                        <span>{message.messageText}</span>
-                        <small>{formatDateTime(message.createdAt, true)}</small>
-                      </div>
-                    ) : (
-                      <article
-                        className={`chat-message chat-message--${message.direction.toLowerCase()}`}
-                        key={message.id}
-                      >
-                        <div className="chat-message__author">
-                          <strong>{message.authorName}</strong>
-                          <span>{formatDateTime(message.createdAt, true)}</span>
-                        </div>
-                        <p>{message.messageText}</p>
-                      </article>
-                    ),
-                  )
+                  chatMessages.map((message) => (
+                    <ChatMessageItem key={message.id} message={message} />
+                  ))
                 )}
                 <div ref={chatEndRef} />
               </div>

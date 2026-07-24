@@ -5,5 +5,6 @@
 @import '@/widgets/app-shell/app-shell.css';
 @import '@/widgets/dashboard/dashboard.css';
 @import '@/features/create-withdrawal/create-withdrawal-form.css';
+@import '@/pages/p2p-simulator/p2p-simulator-page.css';
 @import '@/pages/withdrawal-details/withdrawal-details-page.css';
 @import '@/pages/workspaces/workspaces-page.css';

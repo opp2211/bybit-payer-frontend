@@ -103,14 +103,35 @@ export type WithdrawalEvent = {
   createdAt: string
 }
 
+export type ChatMessageSenderType = 'USER' | 'BOT' | 'COUNTERPARTY' | 'SUPPORT' | 'SYSTEM'
+
+export type ChatMessageContentType = 'TEXT' | 'IMAGE' | 'PDF' | 'VIDEO' | 'UNKNOWN'
+
+export type ChatMessageContent = {
+  type: ChatMessageContentType
+  text: string | null
+  url: string | null
+  fileName: string | null
+}
+
+export type ChatMessageRaw = {
+  msgType: number | null
+  msgCode: number | null
+  roleType: string | null
+  contentType: string | null
+  accountId: string | null
+  userId: string | null
+  nickName: string | null
+}
+
 export type ChatMessageLog = {
   id: string
   bybitOrderId: string
-  messageIndex: number | null
-  messageText: string
-  direction: 'OUTGOING' | 'INCOMING' | 'SYSTEM'
+  messageUuid: string | null
+  senderType: ChatMessageSenderType
   authorName: string
-  contentType: string
+  content: ChatMessageContent
+  raw: ChatMessageRaw
   status: 'PENDING' | 'SENT' | 'FAILED'
   createdAt: string | null
   error: string | null

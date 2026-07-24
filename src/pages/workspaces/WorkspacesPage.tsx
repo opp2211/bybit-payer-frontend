@@ -434,6 +434,10 @@ export function WorkspacesPage() {
                       <strong className="mono">{selectedWorkspace.bybitP2pAdId}</strong>
                     </div>
                     <div>
+                      <span>Bybit ник</span>
+                      <strong>{selectedWorkspace.bybitNickname || '-'}</strong>
+                    </div>
+                    <div>
                       <span>IMAP</span>
                       <strong>
                         {selectedWorkspace.imapHost}:{selectedWorkspace.imapPort}

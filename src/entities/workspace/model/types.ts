@@ -7,6 +7,7 @@ export type Workspace = {
   ownerUsername: string
   currentUserRole: WorkspaceRole
   bybitP2pAdId: string
+  bybitNickname: string | null
   receiptEmail: string | null
   imapHost: string | null
   imapPort: number | null

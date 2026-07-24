@@ -12,6 +12,7 @@ import {
   RefreshCw,
   Server,
   ShieldCheck,
+  Store,
   Users,
   X,
 } from 'lucide-react'
@@ -40,6 +41,7 @@ export function AppShell() {
   const systemOnline = Boolean(
     systemQuery.data?.bybitApiAvailable && systemQuery.data?.gmailImapsAvailable,
   )
+  const simulatorAvailable = systemQuery.data?.bybitMode === 'FAKE'
 
   const navigation = [
     {
@@ -48,6 +50,15 @@ export function AppShell() {
       icon: LayoutDashboard,
       end: true,
     },
+    ...(simulatorAvailable
+      ? [
+          {
+            label: 'P2P-симулятор',
+            to: '/p2p-simulator',
+            icon: Store,
+          },
+        ]
+      : []),
     {
       label: 'Рабочие пространства',
       to: '/workspaces',
