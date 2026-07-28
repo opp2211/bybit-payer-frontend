@@ -13,6 +13,7 @@ export type Workspace = {
   imapPort: number | null
   imapUsername: string | null
   enabled: boolean
+  aiChatAgentEnabled: boolean
   createdAt: string
 }
 
@@ -38,4 +39,8 @@ export type CreateWorkspaceRequest = {
 
 export type AddWorkspaceMemberRequest = {
   lookup: string
+}
+
+export type UpdateWorkspaceAiChatAgentRequest = {
+  enabled: boolean
 }

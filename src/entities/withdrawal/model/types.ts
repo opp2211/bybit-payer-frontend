@@ -104,7 +104,6 @@ export type WithdrawalEvent = {
 }
 
 export type ChatMessageSenderType = 'USER' | 'BOT' | 'COUNTERPARTY' | 'SUPPORT' | 'SYSTEM'
-export type AiChatAgentMode = 'ENABLED' | 'DISABLED' | 'DRY_RUN'
 export type AiChatAction =
   | 'SEND_MESSAGES'
   | 'SEND_REQUISITES'
@@ -169,17 +168,13 @@ export type EmailReceiptCheck = {
 
 export type AiChatAgent = {
   exists: boolean
-  mode: AiChatAgentMode | null
-  modeTitle: string | null
+  enabled: boolean
   status: string | null
   statusTitle: string | null
   currentStep: string | null
   currentStepTitle: string | null
   autoReceiptEnabled: boolean
   operatorRequired: boolean
-  suggestedMessages: string[]
-  suggestedReason: string | null
-  suggestedAt: string | null
   lastDecisionSummary: string | null
   lastAction: AiChatAction | null
   conversationSummary: string | null
@@ -224,8 +219,4 @@ export type WithdrawalAdvertisementPreview = {
 
 export type SendChatMessageRequest = {
   message: string
-}
-
-export type AiChatAgentModeRequest = {
-  mode: AiChatAgentMode
 }

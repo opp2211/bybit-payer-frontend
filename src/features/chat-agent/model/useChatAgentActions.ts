@@ -2,19 +2,11 @@ import { useMutation, useQueryClient } from '@tanstack/react-query'
 
 import { withdrawalApi } from '@/entities/withdrawal/api/withdrawal-api'
 import { withdrawalKeys } from '@/entities/withdrawal/model/queries'
-import type {
-  AiChatAgent,
-  AiChatAgentMode,
-  WithdrawalDetails,
-} from '@/entities/withdrawal/model/types'
+import type { AiChatAgent, WithdrawalDetails } from '@/entities/withdrawal/model/types'
 
 type ChatAgentVariables = {
   workspacePublicId: string
   withdrawalPublicId: string
-}
-
-type ChatAgentModeVariables = ChatAgentVariables & {
-  mode: AiChatAgentMode
 }
 
 function updateChatAgent(
@@ -24,30 +16,12 @@ function updateChatAgent(
   return current ? { ...current, chatAgent } : current
 }
 
-export function useSetChatAgentMode() {
-  const queryClient = useQueryClient()
-
-  return useMutation({
-    mutationFn: ({ workspacePublicId, withdrawalPublicId, mode }: ChatAgentModeVariables) =>
-      withdrawalApi.setChatAgentMode(workspacePublicId, withdrawalPublicId, mode),
-    onSuccess: (chatAgent, { workspacePublicId, withdrawalPublicId }) => {
-      queryClient.setQueryData<WithdrawalDetails>(
-        withdrawalKeys.details(workspacePublicId, withdrawalPublicId),
-        (current) => updateChatAgent(current, chatAgent),
-      )
-      void queryClient.invalidateQueries({
-        queryKey: withdrawalKeys.details(workspacePublicId, withdrawalPublicId),
-      })
-    },
-  })
-}
-
-export function useSendChatAgentSuggestion() {
+export function useDisableChatAgent() {
   const queryClient = useQueryClient()
 
   return useMutation({
     mutationFn: ({ workspacePublicId, withdrawalPublicId }: ChatAgentVariables) =>
-      withdrawalApi.sendChatAgentSuggestion(workspacePublicId, withdrawalPublicId),
+      withdrawalApi.disableChatAgent(workspacePublicId, withdrawalPublicId),
     onSuccess: (chatAgent, { workspacePublicId, withdrawalPublicId }) => {
       queryClient.setQueryData<WithdrawalDetails>(
         withdrawalKeys.details(workspacePublicId, withdrawalPublicId),
