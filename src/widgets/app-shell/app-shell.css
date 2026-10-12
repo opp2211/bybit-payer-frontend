@@ -2,6 +2,41 @@
   min-height: 100vh;
 }
 
+.ad-unpublish-alert {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  margin: 20px 30px 0;
+  padding: 15px 17px;
+  border: 1px solid var(--color-danger);
+  border-radius: 12px;
+  background: var(--color-danger-soft);
+  color: var(--color-danger);
+}
+
+.ad-unpublish-alert > svg {
+  flex: 0 0 auto;
+}
+
+.ad-unpublish-alert strong,
+.ad-unpublish-alert span,
+.ad-unpublish-alert small {
+  display: block;
+}
+
+.ad-unpublish-alert strong {
+  margin-bottom: 4px;
+}
+
+.ad-unpublish-alert span,
+.ad-unpublish-alert small {
+  line-height: 1.5;
+}
+
+.ad-unpublish-alert small {
+  margin-top: 7px;
+}
+
 .sidebar {
   position: fixed;
   z-index: 40;
