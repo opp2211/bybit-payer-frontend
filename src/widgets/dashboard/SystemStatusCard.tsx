@@ -102,8 +102,14 @@ export function SystemStatusCard({ data, loading, error, onRetry }: Props) {
                 <span>Объявление Bybit</span>
                 <strong className="mono">{compactId(data.bybitAdId)}</strong>
               </div>
-              <Badge tone={data.adPublished ? 'success' : 'neutral'}>
-                {data.adPublished ? 'Опубликовано' : 'Не опубликовано'}
+              <Badge
+                tone={data.adUnpublishPending ? 'danger' : data.adPublished ? 'success' : 'neutral'}
+              >
+                {data.adUnpublishPending
+                  ? 'Снятие не подтверждено'
+                  : data.adPublished
+                    ? 'Опубликовано'
+                    : 'Не опубликовано'}
               </Badge>
             </div>
             <div className="system-stats">

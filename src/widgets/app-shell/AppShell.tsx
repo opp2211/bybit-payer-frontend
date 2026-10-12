@@ -39,7 +39,9 @@ export function AppShell() {
   const systemQuery = useSystemStatusQuery(selectedWorkspaceId ?? undefined)
   const resyncMutation = useResyncSystem(selectedWorkspaceId ?? '')
   const systemOnline = Boolean(
-    systemQuery.data?.bybitApiAvailable && systemQuery.data?.gmailImapsAvailable,
+    systemQuery.data?.bybitApiAvailable &&
+    systemQuery.data?.gmailImapsAvailable &&
+    !systemQuery.data?.adUnpublishPending,
   )
   const simulatorAvailable = systemQuery.data?.bybitMode === 'FAKE'
 
@@ -253,7 +255,7 @@ export function AppShell() {
               <span
                 className={clsx(
                   'topbar__status-dot',
-                  systemQuery.isError
+                  systemQuery.isError || systemQuery.data?.adUnpublishPending
                     ? 'topbar__status-dot--error'
                     : systemOnline
                       ? 'topbar__status-dot--online'
@@ -265,9 +267,11 @@ export function AppShell() {
                   ? 'Нет workspace'
                   : systemQuery.isError
                     ? 'Backend недоступен'
-                    : systemOnline
-                      ? 'Система в норме'
-                      : 'Проверьте интеграции'}
+                    : systemQuery.data?.adUnpublishPending
+                      ? 'Объявление требует внимания'
+                      : systemOnline
+                        ? 'Система в норме'
+                        : 'Проверьте интеграции'}
               </span>
               <ChevronDown size={14} />
             </button>
@@ -348,6 +352,21 @@ export function AppShell() {
         </header>
 
         <main className="app-main">
+          {systemQuery.data?.adUnpublishPending && (
+            <div className="ad-unpublish-alert" role="alert">
+              <CircleAlert size={20} />
+              <div>
+                <strong>Объявление Bybit может оставаться опубликованным</strong>
+                <span>
+                  Система продолжает попытки снять его. Проверьте объявление на Bybit и при
+                  необходимости снимите его вручную. Новые ордера могут продолжать поступать.
+                </span>
+                {systemQuery.data.adUnpublishLastError && (
+                  <small>Последняя ошибка: {systemQuery.data.adUnpublishLastError}</small>
+                )}
+              </div>
+            </div>
+          )}
           <Outlet />
         </main>
       </div>

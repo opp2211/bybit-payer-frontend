@@ -4,6 +4,9 @@ export type SystemStatus = {
   gmailImapsAvailable: boolean
   bybitAdId: string | null
   adPublished: boolean
+  adUnpublishPending: boolean
+  adUnpublishPendingSince: string | null
+  adUnpublishLastError: string | null
   currentRate: number | null
   currentRateSourcePosition: number | null
   referenceRate7: number | null
