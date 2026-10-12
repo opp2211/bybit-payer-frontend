@@ -6,7 +6,6 @@ import {
   CheckCircle2,
   CircleDot,
   CreditCard,
-  Eye,
   ExternalLink,
   FileCheck2,
   FileText,
@@ -43,7 +42,6 @@ import {
   getTransferPartyTitle,
   getWithdrawalMethodTitle,
   type AiChatAgent,
-  type AiChatAgentMode,
   type ChatMessageLog,
   type EmailReceiptCheck,
   type Withdrawal,
@@ -52,10 +50,7 @@ import {
 import { OrderAmounts } from '@/entities/withdrawal/ui/OrderAmounts'
 import { WithdrawalStatusBadge } from '@/entities/withdrawal/ui/WithdrawalStatusBadge'
 import { useCancelWithdrawal } from '@/features/cancel-withdrawal/model/useCancelWithdrawal'
-import {
-  useSendChatAgentSuggestion,
-  useSetChatAgentMode,
-} from '@/features/chat-agent/model/useChatAgentActions'
+import { useDisableChatAgent } from '@/features/chat-agent/model/useChatAgentActions'
 import { useMarkWithdrawalSeen } from '@/features/mark-withdrawal-seen/model/useMarkWithdrawalSeen'
 import { useReleaseWithdrawal } from '@/features/release-withdrawal/model/useReleaseWithdrawal'
 import { useSendChatMessage } from '@/features/send-chat-message/model/useSendChatMessage'
@@ -145,40 +140,17 @@ function ReceiptStatus({ check }: { check: EmailReceiptCheck }) {
 
 function AiChatAgentPanel({
   agent,
-  onSetMode,
-  onSendSuggestion,
-  modeLoading,
-  suggestionLoading,
+  onDisable,
+  loading,
 }: {
   agent: AiChatAgent | null
-  onSetMode: (mode: AiChatAgentMode) => void
-  onSendSuggestion: () => void
-  modeLoading: boolean
-  suggestionLoading: boolean
+  onDisable: () => void
+  loading: boolean
 }) {
-  if (!agent?.exists) {
-    return null
-  }
-
-  const mode = agent.mode ?? 'DISABLED'
-  const statusTone = agent.operatorRequired
-    ? 'warning'
-    : mode === 'ENABLED'
-      ? 'success'
-      : mode === 'DRY_RUN'
-        ? 'info'
-        : 'neutral'
-  const statusText = agent.operatorRequired ? 'Нужен оператор' : agent.modeTitle || 'Выключено'
-  const hasSuggestion = agent.suggestedMessages.length > 0
-  const modes: Array<{
-    value: AiChatAgentMode
-    label: string
-    icon: ReactNode
-  }> = [
-    { value: 'ENABLED', label: 'Включено', icon: <Bot size={13} /> },
-    { value: 'DISABLED', label: 'Выключено', icon: <Power size={13} /> },
-    { value: 'DRY_RUN', label: 'Dry run', icon: <Eye size={13} /> },
-  ]
+  const exists = Boolean(agent?.exists)
+  const enabled = Boolean(agent?.exists && agent.enabled)
+  const statusTone = agent?.operatorRequired ? 'warning' : enabled ? 'success' : 'neutral'
+  const statusText = agent?.operatorRequired ? 'Нужен оператор' : enabled ? 'Включён' : 'Выключен'
 
   return (
     <section className="ai-chat-agent" aria-label="ИИ-агент чата">
@@ -189,54 +161,57 @@ function AiChatAgentPanel({
           </span>
           <div>
             <strong>ИИ-агент</strong>
-            <span>{agent.currentStepTitle || agent.statusTitle || 'Следит за чатом'}</span>
+            <span>
+              {agent?.currentStepTitle || agent?.statusTitle || 'Не запускался для этого ордера'}
+            </span>
           </div>
         </div>
         <div className="ai-chat-agent__actions">
           <Badge tone={statusTone}>{statusText}</Badge>
-          {agent.autoReceiptEnabled && <Badge tone="info">Авточек</Badge>}
-          <div className="ai-chat-agent__modes" role="radiogroup" aria-label="Режим ИИ-агента">
-            {modes.map((item) => (
-              <button
-                type="button"
-                role="radio"
-                aria-checked={mode === item.value}
-                className={mode === item.value ? 'is-active' : undefined}
-                disabled={modeLoading}
-                key={item.value}
-                onClick={() => onSetMode(item.value)}
-              >
-                {item.icon}
-                <span>{item.label}</span>
-              </button>
-            ))}
+          {agent?.autoReceiptEnabled && <Badge tone="info">Авточек</Badge>}
+          <button
+            type="button"
+            role="switch"
+            aria-checked={enabled}
+            aria-label="ИИ-агент для этой заявки"
+            className="ai-chat-agent__toggle"
+            disabled={!exists || !enabled || loading}
+            onClick={onDisable}
+          >
+            <Power size={13} />
+            <span>{enabled ? 'Выключить' : 'Выключен'}</span>
+            <span className="ai-chat-agent__toggle-track" aria-hidden="true">
+              <span />
+            </span>
+          </button>
+        </div>
+      </div>
+
+      {agent?.exists && (
+        <div className="ai-chat-agent__state">
+          <div>
+            <span>Статус</span>
+            <strong>{agent.statusTitle || 'Нет данных'}</strong>
+          </div>
+          <div>
+            <span>Текущий этап</span>
+            <strong>{agent.currentStepTitle || 'Нет данных'}</strong>
+          </div>
+          <div>
+            <span>Последнее действие</span>
+            <strong>{agent.lastAction || 'Нет данных'}</strong>
           </div>
         </div>
-      </div>
+      )}
 
-      <div className="ai-chat-agent__state">
-        <div>
-          <span>Статус</span>
-          <strong>{agent.statusTitle || 'Нет данных'}</strong>
-        </div>
-        <div>
-          <span>Текущий этап</span>
-          <strong>{agent.currentStepTitle || 'Нет данных'}</strong>
-        </div>
-        <div>
-          <span>Последнее действие</span>
-          <strong>{agent.lastAction || 'Нет данных'}</strong>
-        </div>
-      </div>
-
-      {agent.lastDecisionSummary && (
+      {agent?.lastDecisionSummary && (
         <div className="ai-chat-agent__note">
           <strong>Последнее решение</strong>
           <span>{agent.lastDecisionSummary}</span>
         </div>
       )}
 
-      {agent.conversationSummary && (
+      {agent?.conversationSummary && (
         <div className="ai-chat-agent__note">
           <strong>Память диалога</strong>
           <span>{agent.conversationSummary}</span>
@@ -244,33 +219,10 @@ function AiChatAgentPanel({
         </div>
       )}
 
-      {agent.operatorHandoffReason && (
+      {agent?.operatorHandoffReason && (
         <div className="ai-chat-agent__note is-warning">
           <strong>Причина передачи оператору</strong>
           <span>{agent.operatorHandoffReason}</span>
-        </div>
-      )}
-
-      {hasSuggestion && (
-        <div className="ai-chat-agent__suggestion">
-          <div className="ai-chat-agent__suggestion-head">
-            <strong>Предложение для отправки</strong>
-            {agent.suggestedReason && <span>{agent.suggestedReason}</span>}
-          </div>
-          <div className="ai-chat-agent__suggestion-messages">
-            {agent.suggestedMessages.map((message, index) => (
-              <p key={`${index}-${message}`}>{message}</p>
-            ))}
-          </div>
-          <Button
-            type="button"
-            size="sm"
-            icon={<Send size={15} />}
-            loading={suggestionLoading}
-            onClick={onSendSuggestion}
-          >
-            Отправить предложенное
-          </Button>
         </div>
       )}
     </section>
@@ -607,8 +559,7 @@ export function WithdrawalDetailsPage() {
   const markSeenMutation = useMarkWithdrawalSeen()
   const releaseMutation = useReleaseWithdrawal()
   const sendMessageMutation = useSendChatMessage(selectedWorkspaceId ?? '', withdrawalPublicId)
-  const setChatAgentModeMutation = useSetChatAgentMode()
-  const sendChatAgentSuggestionMutation = useSendChatAgentSuggestion()
+  const disableChatAgentMutation = useDisableChatAgent()
   const [confirmOpen, setConfirmOpen] = useState(false)
   const [releaseConfirmOpen, setReleaseConfirmOpen] = useState(false)
   const [messageText, setMessageText] = useState('')
@@ -668,7 +619,7 @@ export function WithdrawalDetailsPage() {
   const { withdrawal, events, receiptChecks } = detailsQuery.data
   const chatAgent = detailsQuery.data.chatAgent ?? null
   const manualChatLocked =
-    Boolean(chatAgent?.exists && chatAgent.mode === 'ENABLED') && chatAgent?.status !== 'COMPLETED'
+    Boolean(chatAgent?.exists && chatAgent.enabled) && chatAgent?.status !== 'COMPLETED'
 
   const cancel = async () => {
     try {
@@ -726,36 +677,16 @@ export function WithdrawalDetailsPage() {
     }
   }
 
-  const setChatAgentMode = async (mode: AiChatAgentMode) => {
+  const disableChatAgent = async () => {
     try {
-      await setChatAgentModeMutation.mutateAsync({
-        workspacePublicId: selectedWorkspaceId,
-        withdrawalPublicId,
-        mode,
-      })
-      const modeTitle =
-        mode === 'ENABLED'
-          ? 'ИИ-режим включён'
-          : mode === 'DRY_RUN'
-            ? 'Dry run включён'
-            : 'ИИ выключен'
-      toast.success(modeTitle)
-      void detailsQuery.refetch()
-    } catch (error) {
-      toast.error('Не удалось изменить режим ИИ', { description: getErrorMessage(error) })
-    }
-  }
-
-  const sendChatAgentSuggestion = async () => {
-    try {
-      await sendChatAgentSuggestionMutation.mutateAsync({
+      await disableChatAgentMutation.mutateAsync({
         workspacePublicId: selectedWorkspaceId,
         withdrawalPublicId,
       })
-      toast.success('Подсказка отправлена')
+      toast.success('ИИ-агент выключен')
       void detailsQuery.refetch()
     } catch (error) {
-      toast.error('Не удалось отправить подсказку', { description: getErrorMessage(error) })
+      toast.error('Не удалось выключить ИИ-агента', { description: getErrorMessage(error) })
     }
   }
 
@@ -916,10 +847,8 @@ export function WithdrawalDetailsPage() {
             >
               <AiChatAgentPanel
                 agent={chatAgent}
-                modeLoading={setChatAgentModeMutation.isPending}
-                suggestionLoading={sendChatAgentSuggestionMutation.isPending}
-                onSetMode={(mode) => void setChatAgentMode(mode)}
-                onSendSuggestion={() => void sendChatAgentSuggestion()}
+                loading={disableChatAgentMutation.isPending}
+                onDisable={() => void disableChatAgent()}
               />
 
               <div className="deal-chat__messages">
@@ -943,7 +872,7 @@ export function WithdrawalDetailsPage() {
                   rows={2}
                   placeholder={
                     manualChatLocked
-                      ? 'ИИ-режим включён. Возьмите управление, чтобы написать вручную'
+                      ? 'ИИ-агент включён. Выключите его, чтобы написать вручную'
                       : withdrawal.bybitOrderId
                         ? 'Написать контрагенту...'
                         : 'Чат станет доступен после привязки ордера'

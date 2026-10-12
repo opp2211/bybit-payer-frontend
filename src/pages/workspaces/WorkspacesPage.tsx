@@ -11,6 +11,7 @@ import { useWorkspaceMembersQuery, workspaceKeys } from '@/entities/workspace/mo
 import type { Workspace } from '@/entities/workspace/model/types'
 import { useAuth } from '@/features/auth/model/useAuth'
 import { useWorkspace } from '@/features/workspace/model/useWorkspace'
+import { WorkspaceAiAgentToggle } from '@/features/workspace/ui/WorkspaceAiAgentToggle'
 import { getErrorMessage } from '@/shared/lib/errors'
 import { formatDateTime } from '@/shared/lib/formatters'
 import { Badge } from '@/shared/ui/Badge'
@@ -424,6 +425,10 @@ export function WorkspacesPage() {
                     ) : undefined
                   }
                 >
+                  <WorkspaceAiAgentToggle
+                    workspace={selectedWorkspace}
+                    className="workspace-details-ai-agent"
+                  />
                   <div className="workspace-facts">
                     <div>
                       <span>Public ID</span>

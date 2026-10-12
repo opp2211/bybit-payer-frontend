@@ -11,6 +11,7 @@ import {
 } from '@/entities/withdrawal/model/queries'
 import { CreateWithdrawalForm } from '@/features/create-withdrawal/ui/CreateWithdrawalForm'
 import { useWorkspace } from '@/features/workspace/model/useWorkspace'
+import { WorkspaceAiAgentToggle } from '@/features/workspace/ui/WorkspaceAiAgentToggle'
 import {
   markCompletionSoundPlayed,
   playCompletionSound,
@@ -25,7 +26,7 @@ import { ForeignOrders } from '@/widgets/dashboard/ForeignOrders'
 import { OverviewCards } from '@/widgets/dashboard/OverviewCards'
 
 export function DashboardPage() {
-  const { selectedWorkspaceId, loading, error } = useWorkspace()
+  const { selectedWorkspace, selectedWorkspaceId, loading, error } = useWorkspace()
   const activeQuery = useActiveWithdrawalsQuery(selectedWorkspaceId ?? undefined)
   const completedQuery = useCompletedWithdrawalsQuery(selectedWorkspaceId ?? undefined)
   const foreignOrdersQuery = useForeignOrdersQuery(selectedWorkspaceId ?? undefined)
@@ -67,7 +68,7 @@ export function DashboardPage() {
     )
   }
 
-  if (!selectedWorkspaceId) {
+  if (!selectedWorkspaceId || !selectedWorkspace) {
     return (
       <div className="page dashboard-page">
         <Card>
@@ -87,6 +88,8 @@ export function DashboardPage() {
 
   return (
     <div className="page dashboard-page">
+      <WorkspaceAiAgentToggle workspace={selectedWorkspace} />
+
       <div className="dashboard-layout">
         <aside className="dashboard-layout__side">
           <CreateWithdrawalForm workspacePublicId={selectedWorkspaceId} />
