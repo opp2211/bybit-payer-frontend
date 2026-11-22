@@ -107,13 +107,6 @@ export type WithdrawalEvent = {
 }
 
 export type ChatMessageSenderType = 'USER' | 'BOT' | 'COUNTERPARTY' | 'SUPPORT' | 'SYSTEM'
-export type AiChatAction =
-  | 'SEND_MESSAGES'
-  | 'SEND_REQUISITES'
-  | 'WAIT'
-  | 'REQUEST_CANCELLATION'
-  | 'HANDOFF'
-
 export type ChatMessageContentType = 'TEXT' | 'IMAGE' | 'PDF' | 'VIDEO' | 'UNKNOWN'
 
 export type ChatMessageContent = {
@@ -169,28 +162,11 @@ export type EmailReceiptCheck = {
   createdAt: string
 }
 
-export type AiChatAgent = {
-  exists: boolean
-  enabled: boolean
-  status: string | null
-  statusTitle: string | null
-  currentStep: string | null
-  currentStepTitle: string | null
-  autoReceiptEnabled: boolean
-  operatorRequired: boolean
-  lastDecisionSummary: string | null
-  lastAction: AiChatAction | null
-  conversationSummary: string | null
-  summaryUpdatedAt: string | null
-  operatorHandoffReason: string | null
-}
-
 export type WithdrawalDetails = {
   withdrawal: Withdrawal
   events: WithdrawalEvent[]
   chatMessages: ChatMessageLog[]
   receiptChecks: EmailReceiptCheck[]
-  chatAgent: AiChatAgent
 }
 
 export type CreateWithdrawalRequest = {

@@ -11,7 +11,6 @@ import {
 } from '@/entities/withdrawal/model/queries'
 import { CreateWithdrawalForm } from '@/features/create-withdrawal/ui/CreateWithdrawalForm'
 import { useWorkspace } from '@/features/workspace/model/useWorkspace'
-import { WorkspaceAiAgentToggle } from '@/features/workspace/ui/WorkspaceAiAgentToggle'
 import {
   markCompletionSoundPlayed,
   playCompletionSound,
@@ -88,8 +87,6 @@ export function DashboardPage() {
 
   return (
     <div className="page dashboard-page">
-      <WorkspaceAiAgentToggle workspace={selectedWorkspace} />
-
       <div className="dashboard-layout">
         <aside className="dashboard-layout__side">
           <CreateWithdrawalForm workspacePublicId={selectedWorkspaceId} />

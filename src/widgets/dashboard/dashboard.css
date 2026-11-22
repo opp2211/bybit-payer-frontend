@@ -163,10 +163,6 @@
   gap: 18px;
 }
 
-.dashboard-page > .workspace-ai-agent-toggle {
-  margin-bottom: 18px;
-}
-
 .dashboard-layout__side,
 .dashboard-layout__main {
   display: grid;

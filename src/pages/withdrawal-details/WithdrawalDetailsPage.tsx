@@ -1,7 +1,6 @@
 import {
   ArrowLeft,
   Ban,
-  Bot,
   Check,
   CheckCircle2,
   CircleDot,
@@ -15,7 +14,6 @@ import {
   Mail,
   MessageSquareText,
   Phone,
-  Power,
   ReceiptText,
   Send,
   TriangleAlert,
@@ -41,7 +39,6 @@ import {
   getPayerBankTypeTitle,
   getTransferPartyTitle,
   getWithdrawalMethodTitle,
-  type AiChatAgent,
   type ChatMessageLog,
   type EmailReceiptCheck,
   type Withdrawal,
@@ -50,7 +47,6 @@ import {
 import { OrderAmounts } from '@/entities/withdrawal/ui/OrderAmounts'
 import { WithdrawalStatusBadge } from '@/entities/withdrawal/ui/WithdrawalStatusBadge'
 import { useCancelWithdrawal } from '@/features/cancel-withdrawal/model/useCancelWithdrawal'
-import { useDisableChatAgent } from '@/features/chat-agent/model/useChatAgentActions'
 import { useMarkWithdrawalSeen } from '@/features/mark-withdrawal-seen/model/useMarkWithdrawalSeen'
 import { useReleaseWithdrawal } from '@/features/release-withdrawal/model/useReleaseWithdrawal'
 import { useSendChatMessage } from '@/features/send-chat-message/model/useSendChatMessage'
@@ -79,12 +75,6 @@ const EVENT_TITLES: Record<string, string> = {
   ADVERTISEMENT_UPDATED: 'Объявление Bybit обновлено',
   WITHDRAWAL_REMOVED_FROM_AD: 'Сумма убрана из объявления',
   ORDER_FOUND: 'Ордер Bybit найден',
-  AI_CHAT_STARTED: 'ИИ-агент включён',
-  AI_CHAT_MODE_CHANGED: 'Режим ИИ-агента изменён',
-  AI_CHAT_MESSAGE_SENT: 'ИИ отправил сообщение',
-  AI_CHAT_SUGGESTION_CREATED: 'ИИ подготовил подсказку',
-  AI_CHAT_DISABLED: 'ИИ-режим выключен',
-  AI_CHAT_OPERATOR_REQUIRED: 'ИИ позвал оператора',
   ORDER_CANCELLED: 'Ордер Bybit отменён',
   ORDER_COMPLETED_EXTERNALLY: 'Ордер завершён на стороне Bybit',
   WITHDRAWAL_RETURNED_TO_WORK: 'Заявка возвращена в работу',
@@ -136,97 +126,6 @@ function ReceiptStatus({ check }: { check: EmailReceiptCheck }) {
         : 'Найден'
 
   return <Badge tone={tone}>{label}</Badge>
-}
-
-function AiChatAgentPanel({
-  agent,
-  onDisable,
-  loading,
-}: {
-  agent: AiChatAgent | null
-  onDisable: () => void
-  loading: boolean
-}) {
-  const exists = Boolean(agent?.exists)
-  const enabled = Boolean(agent?.exists && agent.enabled)
-  const statusTone = agent?.operatorRequired ? 'warning' : enabled ? 'success' : 'neutral'
-  const statusText = agent?.operatorRequired ? 'Нужен оператор' : enabled ? 'Включён' : 'Выключен'
-
-  return (
-    <section className="ai-chat-agent" aria-label="ИИ-агент чата">
-      <div className="ai-chat-agent__head">
-        <div className="ai-chat-agent__title">
-          <span className="ai-chat-agent__icon">
-            <Bot size={16} />
-          </span>
-          <div>
-            <strong>ИИ-агент</strong>
-            <span>
-              {agent?.currentStepTitle || agent?.statusTitle || 'Не запускался для этого ордера'}
-            </span>
-          </div>
-        </div>
-        <div className="ai-chat-agent__actions">
-          <Badge tone={statusTone}>{statusText}</Badge>
-          {agent?.autoReceiptEnabled && <Badge tone="info">Авточек</Badge>}
-          <button
-            type="button"
-            role="switch"
-            aria-checked={enabled}
-            aria-label="ИИ-агент для этой заявки"
-            className="ai-chat-agent__toggle"
-            disabled={!exists || !enabled || loading}
-            onClick={onDisable}
-          >
-            <Power size={13} />
-            <span>{enabled ? 'Выключить' : 'Выключен'}</span>
-            <span className="ai-chat-agent__toggle-track" aria-hidden="true">
-              <span />
-            </span>
-          </button>
-        </div>
-      </div>
-
-      {agent?.exists && (
-        <div className="ai-chat-agent__state">
-          <div>
-            <span>Статус</span>
-            <strong>{agent.statusTitle || 'Нет данных'}</strong>
-          </div>
-          <div>
-            <span>Текущий этап</span>
-            <strong>{agent.currentStepTitle || 'Нет данных'}</strong>
-          </div>
-          <div>
-            <span>Последнее действие</span>
-            <strong>{agent.lastAction || 'Нет данных'}</strong>
-          </div>
-        </div>
-      )}
-
-      {agent?.lastDecisionSummary && (
-        <div className="ai-chat-agent__note">
-          <strong>Последнее решение</strong>
-          <span>{agent.lastDecisionSummary}</span>
-        </div>
-      )}
-
-      {agent?.conversationSummary && (
-        <div className="ai-chat-agent__note">
-          <strong>Память диалога</strong>
-          <span>{agent.conversationSummary}</span>
-          {agent.summaryUpdatedAt && <small>{formatDateTime(agent.summaryUpdatedAt, true)}</small>}
-        </div>
-      )}
-
-      {agent?.operatorHandoffReason && (
-        <div className="ai-chat-agent__note is-warning">
-          <strong>Причина передачи оператору</strong>
-          <span>{agent.operatorHandoffReason}</span>
-        </div>
-      )}
-    </section>
-  )
 }
 
 function ChatMessageItem({ message }: { message: ChatMessageLog }) {
@@ -559,7 +458,6 @@ export function WithdrawalDetailsPage() {
   const markSeenMutation = useMarkWithdrawalSeen()
   const releaseMutation = useReleaseWithdrawal()
   const sendMessageMutation = useSendChatMessage(selectedWorkspaceId ?? '', withdrawalPublicId)
-  const disableChatAgentMutation = useDisableChatAgent()
   const [confirmOpen, setConfirmOpen] = useState(false)
   const [releaseConfirmOpen, setReleaseConfirmOpen] = useState(false)
   const [messageText, setMessageText] = useState('')
@@ -617,9 +515,6 @@ export function WithdrawalDetailsPage() {
   if (!detailsQuery.data) return null
 
   const { withdrawal, events, receiptChecks } = detailsQuery.data
-  const chatAgent = detailsQuery.data.chatAgent ?? null
-  const manualChatLocked =
-    Boolean(chatAgent?.exists && chatAgent.enabled) && chatAgent?.status !== 'COMPLETED'
 
   const cancel = async () => {
     try {
@@ -674,19 +569,6 @@ export function WithdrawalDetailsPage() {
       void detailsQuery.refetch()
     } catch (error) {
       toast.error('Не удалось отправить сообщение', { description: getErrorMessage(error) })
-    }
-  }
-
-  const disableChatAgent = async () => {
-    try {
-      await disableChatAgentMutation.mutateAsync({
-        workspacePublicId: selectedWorkspaceId,
-        withdrawalPublicId,
-      })
-      toast.success('ИИ-агент выключен')
-      void detailsQuery.refetch()
-    } catch (error) {
-      toast.error('Не удалось выключить ИИ-агента', { description: getErrorMessage(error) })
     }
   }
 
@@ -845,12 +727,6 @@ export function WithdrawalDetailsPage() {
               }
               icon={<MessageSquareText size={17} />}
             >
-              <AiChatAgentPanel
-                agent={chatAgent}
-                loading={disableChatAgentMutation.isPending}
-                onDisable={() => void disableChatAgent()}
-              />
-
               <div className="deal-chat__messages">
                 {chatMessages.length === 0 ? (
                   <EmptyState
@@ -871,15 +747,11 @@ export function WithdrawalDetailsPage() {
                   maxLength={1000}
                   rows={2}
                   placeholder={
-                    manualChatLocked
-                      ? 'ИИ-агент включён. Выключите его, чтобы написать вручную'
-                      : withdrawal.bybitOrderId
-                        ? 'Написать контрагенту...'
-                        : 'Чат станет доступен после привязки ордера'
+                    withdrawal.bybitOrderId
+                      ? 'Написать контрагенту...'
+                      : 'Чат станет доступен после привязки ордера'
                   }
-                  disabled={
-                    !withdrawal.bybitOrderId || manualChatLocked || sendMessageMutation.isPending
-                  }
+                  disabled={!withdrawal.bybitOrderId || sendMessageMutation.isPending}
                   onChange={(event) => setMessageText(event.target.value)}
                   onKeyDown={(event) => {
                     if (event.key === 'Enter' && !event.shiftKey) {
@@ -892,7 +764,7 @@ export function WithdrawalDetailsPage() {
                   type="submit"
                   icon={<Send size={17} />}
                   loading={sendMessageMutation.isPending}
-                  disabled={!withdrawal.bybitOrderId || manualChatLocked || !messageText.trim()}
+                  disabled={!withdrawal.bybitOrderId || !messageText.trim()}
                 >
                   Отправить
                 </Button>
