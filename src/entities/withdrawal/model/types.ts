@@ -164,6 +164,7 @@ export type EmailReceiptCheck = {
 
 export type WithdrawalDetails = {
   withdrawal: Withdrawal
+  bybitCounterpartyVerifiedName: string | null
   events: WithdrawalEvent[]
   chatMessages: ChatMessageLog[]
   receiptChecks: EmailReceiptCheck[]

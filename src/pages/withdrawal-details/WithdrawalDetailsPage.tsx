@@ -245,7 +245,13 @@ function AttachmentFallback({ icon, title }: { icon: ReactNode; title: string })
   )
 }
 
-function WithdrawalSummary({ withdrawal }: { withdrawal: Withdrawal }) {
+function WithdrawalSummary({
+  withdrawal,
+  bybitCounterpartyVerifiedName,
+}: {
+  withdrawal: Withdrawal
+  bybitCounterpartyVerifiedName: string | null
+}) {
   const withdrawalMethod = getEffectiveWithdrawalMethod(withdrawal.withdrawalMethod)
 
   return (
@@ -337,6 +343,13 @@ function WithdrawalSummary({ withdrawal }: { withdrawal: Withdrawal }) {
             )
           }
         />
+        {withdrawal.bybitOrderId && (
+          <DetailRow
+            icon={<UserRound size={16} />}
+            label="Верифицированное имя контрагента"
+            value={bybitCounterpartyVerifiedName || 'Не предоставлено Bybit'}
+          />
+        )}
         {withdrawal.createdByUsername && (
           <DetailRow
             icon={<UserRound size={16} />}
@@ -514,7 +527,7 @@ export function WithdrawalDetailsPage() {
 
   if (!detailsQuery.data) return null
 
-  const { withdrawal, events, receiptChecks } = detailsQuery.data
+  const { withdrawal, bybitCounterpartyVerifiedName, events, receiptChecks } = detailsQuery.data
 
   const cancel = async () => {
     try {
@@ -639,7 +652,10 @@ export function WithdrawalDetailsPage() {
 
         <div className="details-grid">
           <div className="details-column">
-            <WithdrawalSummary withdrawal={withdrawal} />
+            <WithdrawalSummary
+              withdrawal={withdrawal}
+              bybitCounterpartyVerifiedName={bybitCounterpartyVerifiedName}
+            />
 
             <Card
               title="Проверка чека"
