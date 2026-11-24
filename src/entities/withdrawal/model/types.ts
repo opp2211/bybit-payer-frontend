@@ -96,6 +96,11 @@ export type Withdrawal = {
   canRelease: boolean
 }
 
+export type WithdrawalSoundEvent = {
+  id: number
+  eventType: string
+}
+
 export type WithdrawalEvent = {
   id: number
   eventType: string

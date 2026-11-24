@@ -10,6 +10,8 @@ export const withdrawalKeys = {
     [...withdrawalKeys.workspace(workspacePublicId), 'active'] as const,
   completed: (workspacePublicId: string) =>
     [...withdrawalKeys.workspace(workspacePublicId), 'completed'] as const,
+  soundEvents: (workspacePublicId: string) =>
+    [...withdrawalKeys.workspace(workspacePublicId), 'sound-events'] as const,
   details: (workspacePublicId: string, withdrawalPublicId: string) =>
     [...withdrawalKeys.workspace(workspacePublicId), 'details', withdrawalPublicId] as const,
   preview: (workspacePublicId: string, payload: CreateWithdrawalRequest | null) =>
@@ -42,6 +44,16 @@ export function useWithdrawalDetailsQuery(workspacePublicId?: string, withdrawal
     queryFn: () => withdrawalApi.getDetails(workspacePublicId!, withdrawalPublicId!),
     enabled: Boolean(workspacePublicId && withdrawalPublicId),
     refetchInterval: 2_000,
+  })
+}
+
+export function useWithdrawalSoundEventsQuery(workspacePublicId: string) {
+  return useQuery({
+    queryKey: withdrawalKeys.soundEvents(workspacePublicId),
+    queryFn: ({ signal }) => withdrawalApi.getSoundEvents(workspacePublicId, signal),
+    refetchInterval: 3_000,
+    refetchIntervalInBackground: true,
+    retry: false,
   })
 }
 

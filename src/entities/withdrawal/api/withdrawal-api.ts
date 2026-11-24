@@ -4,6 +4,7 @@ import type {
   Withdrawal,
   WithdrawalAdvertisementPreview,
   WithdrawalDetails,
+  WithdrawalSoundEvent,
 } from '@/entities/withdrawal/model/types'
 import { apiRequest } from '@/shared/api/api-client'
 import { API_BASE_URL } from '@/shared/config/env'
@@ -13,6 +14,11 @@ export const withdrawalApi = {
     apiRequest<Withdrawal[]>(`/api/workspaces/${workspacePublicId}/withdrawals/active`),
   getCompleted: (workspacePublicId: string) =>
     apiRequest<Withdrawal[]>(`/api/workspaces/${workspacePublicId}/withdrawals/completed`),
+  getSoundEvents: (workspacePublicId: string, signal: AbortSignal) =>
+    apiRequest<WithdrawalSoundEvent[]>(
+      `/api/workspaces/${workspacePublicId}/withdrawals/sound-events`,
+      { signal },
+    ),
   getDetails: (workspacePublicId: string, withdrawalPublicId: string) =>
     apiRequest<WithdrawalDetails>(
       `/api/workspaces/${workspacePublicId}/withdrawals/${withdrawalPublicId}`,

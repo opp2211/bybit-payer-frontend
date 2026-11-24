@@ -1,21 +1,13 @@
-import { useEffect } from 'react'
 import { Link } from 'react-router-dom'
-import { toast } from 'sonner'
 
 import { useForeignOrdersQuery } from '@/entities/foreign-order/model/queries'
 import { useSystemStatusQuery } from '@/entities/system/model/queries'
-import { getWithdrawalPaidAmountText } from '@/entities/withdrawal/lib/amounts'
 import {
   useActiveWithdrawalsQuery,
   useCompletedWithdrawalsQuery,
 } from '@/entities/withdrawal/model/queries'
 import { CreateWithdrawalForm } from '@/features/create-withdrawal/ui/CreateWithdrawalForm'
 import { useWorkspace } from '@/features/workspace/model/useWorkspace'
-import {
-  markCompletionSoundPlayed,
-  playCompletionSound,
-  wasCompletionSoundPlayed,
-} from '@/shared/lib/completion-sound'
 import { getErrorMessage } from '@/shared/lib/errors'
 import { Card } from '@/shared/ui/Card'
 import { EmptyState, ErrorState, LoadingState } from '@/shared/ui/QueryState'
@@ -30,22 +22,6 @@ export function DashboardPage() {
   const completedQuery = useCompletedWithdrawalsQuery(selectedWorkspaceId ?? undefined)
   const foreignOrdersQuery = useForeignOrdersQuery(selectedWorkspaceId ?? undefined)
   const systemQuery = useSystemStatusQuery(selectedWorkspaceId ?? undefined)
-
-  useEffect(() => {
-    const unseen = (completedQuery.data ?? []).filter(
-      (item) => !item.completionSeen && !wasCompletionSoundPlayed(item.publicId),
-    )
-    if (!unseen.length) return
-
-    unseen.forEach((item) => markCompletionSoundPlayed(item.publicId))
-    void playCompletionSound()
-
-    const newest = unseen[0]
-    toast.success(`Заявка ${newest.publicId} выполнена`, {
-      description: `${getWithdrawalPaidAmountText(newest)} успешно выплачено.`,
-      duration: 7_000,
-    })
-  }, [completedQuery.data])
 
   if (loading) {
     return (
