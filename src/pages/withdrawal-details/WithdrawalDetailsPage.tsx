@@ -527,7 +527,8 @@ export function WithdrawalDetailsPage() {
 
   if (!detailsQuery.data) return null
 
-  const { withdrawal, bybitCounterpartyVerifiedName, events, receiptChecks } = detailsQuery.data
+  const { withdrawal, bybitCounterpartyVerifiedName, chatUnavailable, events, receiptChecks } =
+    detailsQuery.data
 
   const cancel = async () => {
     try {
@@ -579,7 +580,6 @@ export function WithdrawalDetailsPage() {
       await sendMessageMutation.mutateAsync(message)
       setMessageText('')
       toast.success('Сообщение отправлено')
-      void detailsQuery.refetch()
     } catch (error) {
       toast.error('Не удалось отправить сообщение', { description: getErrorMessage(error) })
     }
@@ -739,15 +739,27 @@ export function WithdrawalDetailsPage() {
               className="deal-chat"
               title="Чат сделки"
               description={
-                withdrawal.bybitOrderId ? 'Синхронизирован с Bybit' : 'Ордер не назначен'
+                chatUnavailable
+                  ? 'Чат Bybit временно недоступен'
+                  : withdrawal.bybitOrderId
+                    ? 'Синхронизирован с Bybit'
+                    : 'Ордер не назначен'
               }
               icon={<MessageSquareText size={17} />}
             >
               <div className="deal-chat__messages">
                 {chatMessages.length === 0 ? (
                   <EmptyState
-                    title="Сообщений пока нет"
-                    description="Переписка появится после привязки Bybit-ордера."
+                    title={
+                      chatUnavailable ? 'Не удалось загрузить сообщения' : 'Сообщений пока нет'
+                    }
+                    description={
+                      chatUnavailable
+                        ? 'История обновится после восстановления связи с Bybit.'
+                        : withdrawal.bybitOrderId
+                          ? 'Новые сообщения появятся здесь.'
+                          : 'Переписка появится после привязки Bybit-ордера.'
+                    }
                   />
                 ) : (
                   chatMessages.map((message) => (

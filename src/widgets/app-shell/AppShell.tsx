@@ -17,7 +17,7 @@ import {
   X,
 } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
-import { Link, NavLink, Outlet } from 'react-router-dom'
+import { Link, NavLink, Outlet, useMatch } from 'react-router-dom'
 import { toast } from 'sonner'
 
 import { useSystemStatusQuery } from '@/entities/system/model/queries'
@@ -33,6 +33,7 @@ import { Button } from '@/shared/ui/Button'
 export function AppShell() {
   const { user, logout } = useAuth()
   const { workspaces, selectedWorkspace, selectedWorkspaceId, selectWorkspace } = useWorkspace()
+  const chatPublicId = useMatch('/withdrawals/:withdrawalPublicId')?.params.withdrawalPublicId
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [systemMenuOpen, setSystemMenuOpen] = useState(false)
   const [workspaceMenuOpen, setWorkspaceMenuOpen] = useState(false)
@@ -369,7 +370,10 @@ export function AppShell() {
               </div>
             </div>
           )}
-          <WithdrawalUpdatesProvider workspacePublicId={selectedWorkspaceId}>
+          <WithdrawalUpdatesProvider
+            workspacePublicId={selectedWorkspaceId}
+            chatPublicId={chatPublicId?.toUpperCase() ?? null}
+          >
             {selectedWorkspaceId && (
               <WithdrawalSoundMonitor
                 key={selectedWorkspaceId}

@@ -177,6 +177,7 @@ export type WithdrawalDetails = {
   bybitCounterpartyVerifiedName: string | null
   events: WithdrawalEvent[]
   chatMessages: ChatMessageLog[]
+  chatUnavailable?: boolean
   receiptChecks: EmailReceiptCheck[]
 }
 

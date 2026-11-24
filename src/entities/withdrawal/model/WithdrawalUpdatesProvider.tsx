@@ -1,5 +1,5 @@
 import { useQueryClient } from '@tanstack/react-query'
-import { useEffect, useState, type PropsWithChildren } from 'react'
+import { useEffect, useState, type ContextType, type PropsWithChildren } from 'react'
 
 import { withdrawalApi } from '@/entities/withdrawal/api/withdrawal-api'
 import { withdrawalKeys } from '@/entities/withdrawal/model/queries'
@@ -33,10 +33,11 @@ function parseUpdate(data: string): WithdrawalUpdate | null {
 
 export function WithdrawalUpdatesProvider({
   workspacePublicId,
+  chatPublicId,
   children,
-}: PropsWithChildren<{ workspacePublicId: string | null }>) {
+}: PropsWithChildren<{ workspacePublicId: string | null; chatPublicId: string | null }>) {
   const queryClient = useQueryClient()
-  const [connectedWorkspace, setConnectedWorkspace] = useState<string | null>(null)
+  const [connection, setConnection] = useState<ContextType<typeof WithdrawalUpdatesContext>>(null)
 
   useEffect(() => {
     if (!workspacePublicId || typeof EventSource === 'undefined') return
@@ -80,7 +81,7 @@ export function WithdrawalUpdatesProvider({
       window.clearTimeout(heartbeatTimer)
       source?.close()
       source = undefined
-      setConnectedWorkspace(null)
+      setConnection(null)
       reconnectTimer ??= window.setTimeout(connect, RECONNECT_DELAY)
     }
 
@@ -91,13 +92,17 @@ export function WithdrawalUpdatesProvider({
 
     function connect() {
       reconnectTimer = undefined
-      const stream = new EventSource(withdrawalApi.getUpdatesUrl(workspace))
+      const stream = new EventSource(withdrawalApi.getUpdatesUrl(workspace, chatPublicId))
       source = stream
       watchHeartbeat()
 
-      stream.addEventListener('ready', () => {
+      stream.addEventListener('ready', (message: MessageEvent<string>) => {
         if (source !== stream) return
-        setConnectedWorkspace(workspace)
+        setConnection({
+          workspacePublicId: workspace,
+          chatPublicId,
+          chatSupported: message.data === 'chat',
+        })
         watchHeartbeat()
         activeChanged = completedChanged = soundsChanged = refreshAllDetails = true
         queueRefresh()
@@ -119,9 +124,16 @@ export function WithdrawalUpdatesProvider({
         queueRefresh()
       })
 
+      stream.addEventListener('chat', (message: MessageEvent<string>) => {
+        if (source !== stream || !chatPublicId || message.data !== chatPublicId) return
+        watchHeartbeat()
+        changedDetails.add(chatPublicId)
+        queueRefresh()
+      })
+
       stream.onerror = () => {
         if (source !== stream) return
-        setConnectedWorkspace(null)
+        setConnection(null)
         if (stream.readyState === EventSource.CLOSED) {
           reconnect()
         } else {
@@ -138,11 +150,16 @@ export function WithdrawalUpdatesProvider({
       window.clearTimeout(heartbeatTimer)
       window.clearTimeout(batchTimer)
     }
-  }, [queryClient, workspacePublicId])
+  }, [chatPublicId, queryClient, workspacePublicId])
 
   return (
     <WithdrawalUpdatesContext.Provider
-      value={workspacePublicId === connectedWorkspace ? connectedWorkspace : null}
+      value={
+        connection?.workspacePublicId === workspacePublicId &&
+        connection.chatPublicId === chatPublicId
+          ? connection
+          : null
+      }
     >
       {children}
     </WithdrawalUpdatesContext.Provider>

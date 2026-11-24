@@ -19,11 +19,14 @@ export const withdrawalApi = {
       `/api/workspaces/${workspacePublicId}/withdrawals/sound-events`,
       { signal },
     ),
-  getUpdatesUrl: (workspacePublicId: string) =>
-    `${API_BASE_URL}/api/workspaces/${encodeURIComponent(workspacePublicId)}/withdrawals/updates`,
-  getDetails: (workspacePublicId: string, withdrawalPublicId: string) =>
+  getUpdatesUrl: (workspacePublicId: string, chatPublicId: string | null) => {
+    const url = `${API_BASE_URL}/api/workspaces/${encodeURIComponent(workspacePublicId)}/withdrawals/updates`
+    return chatPublicId ? `${url}?chat=${encodeURIComponent(chatPublicId)}` : url
+  },
+  getDetails: (workspacePublicId: string, withdrawalPublicId: string, signal: AbortSignal) =>
     apiRequest<WithdrawalDetails>(
       `/api/workspaces/${workspacePublicId}/withdrawals/${withdrawalPublicId}`,
+      { signal },
     ),
   create: (workspacePublicId: string, payload: CreateWithdrawalRequest) =>
     apiRequest<Withdrawal>(`/api/workspaces/${workspacePublicId}/withdrawals`, {

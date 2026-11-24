@@ -2,7 +2,10 @@ import { useQuery } from '@tanstack/react-query'
 
 import { withdrawalApi } from '@/entities/withdrawal/api/withdrawal-api'
 import type { CreateWithdrawalRequest } from '@/entities/withdrawal/model/types'
-import { useWithdrawalUpdatesConnected } from '@/entities/withdrawal/model/withdrawal-updates-context'
+import {
+  useWithdrawalChatUpdatesConnected,
+  useWithdrawalUpdatesConnected,
+} from '@/entities/withdrawal/model/withdrawal-updates-context'
 
 const FALLBACK_INTERVAL = 10_000
 const RECONCILIATION_INTERVAL = 60_000
@@ -47,11 +50,14 @@ export function useCompletedWithdrawalsQuery(workspacePublicId?: string) {
 }
 
 export function useWithdrawalDetailsQuery(workspacePublicId?: string, withdrawalPublicId?: string) {
+  const connected = useWithdrawalChatUpdatesConnected(workspacePublicId, withdrawalPublicId)
   return useQuery({
     queryKey: withdrawalKeys.details(workspacePublicId ?? '', withdrawalPublicId ?? ''),
-    queryFn: () => withdrawalApi.getDetails(workspacePublicId!, withdrawalPublicId!),
+    queryFn: ({ signal }) =>
+      withdrawalApi.getDetails(workspacePublicId!, withdrawalPublicId!, signal),
     enabled: Boolean(workspacePublicId && withdrawalPublicId),
-    refetchInterval: 2_000,
+    refetchInterval: connected ? false : FALLBACK_INTERVAL,
+    refetchIntervalInBackground: true,
   })
 }
 
