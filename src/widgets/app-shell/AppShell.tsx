@@ -21,6 +21,7 @@ import { Link, NavLink, Outlet } from 'react-router-dom'
 import { toast } from 'sonner'
 
 import { useSystemStatusQuery } from '@/entities/system/model/queries'
+import { WithdrawalUpdatesProvider } from '@/entities/withdrawal/model/WithdrawalUpdatesProvider'
 import { WithdrawalSoundMonitor } from '@/entities/withdrawal/ui/WithdrawalSoundMonitor'
 import { useAuth } from '@/features/auth/model/useAuth'
 import { useResyncSystem } from '@/features/resync-system/model/useResyncSystem'
@@ -112,9 +113,6 @@ export function AppShell() {
 
   return (
     <div className={clsx('app-shell', sidebarOpen && 'app-shell--sidebar-open')}>
-      {selectedWorkspaceId && (
-        <WithdrawalSoundMonitor key={selectedWorkspaceId} workspacePublicId={selectedWorkspaceId} />
-      )}
       <aside className={clsx('sidebar', sidebarOpen && 'sidebar--open')}>
         <div className="sidebar__brand">
           <Link to="/" className="brand" aria-label="FlowPay, на главную">
@@ -371,7 +369,15 @@ export function AppShell() {
               </div>
             </div>
           )}
-          <Outlet />
+          <WithdrawalUpdatesProvider workspacePublicId={selectedWorkspaceId}>
+            {selectedWorkspaceId && (
+              <WithdrawalSoundMonitor
+                key={selectedWorkspaceId}
+                workspacePublicId={selectedWorkspaceId}
+              />
+            )}
+            <Outlet />
+          </WithdrawalUpdatesProvider>
         </main>
       </div>
     </div>

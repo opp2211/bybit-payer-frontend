@@ -19,6 +19,8 @@ export const withdrawalApi = {
       `/api/workspaces/${workspacePublicId}/withdrawals/sound-events`,
       { signal },
     ),
+  getUpdatesUrl: (workspacePublicId: string) =>
+    `${API_BASE_URL}/api/workspaces/${encodeURIComponent(workspacePublicId)}/withdrawals/updates`,
   getDetails: (workspacePublicId: string, withdrawalPublicId: string) =>
     apiRequest<WithdrawalDetails>(
       `/api/workspaces/${workspacePublicId}/withdrawals/${withdrawalPublicId}`,

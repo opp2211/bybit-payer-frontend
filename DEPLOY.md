@@ -162,6 +162,12 @@ ssh -i $SSH_KEY $VPS 'sudo journalctl -u caddy -n 50 --no-pager'
 ssh -i $SSH_KEY $VPS 'curl -fsS http://127.0.0.1:8080/api/auth/csrf >/dev/null && echo backend-ok'
 ```
 
+Поток SSE для заявок проходит через существующий маршрут `/api/*`. Caddy передаёт
+`text/event-stream` по мере поступления данных. Backend выставляет `Cache-Control: no-store, no-transform`
+и `X-Accel-Buffering: no` для обратного прокси. Под авторизованной сессией запрос
+`/api/workspaces/{workspacePublicId}/withdrawals/updates` получает событие `ready` при подключении
+и `heartbeat` каждые 15 секунд.
+
 ## 5. Проверка с клиентской стороны
 
 ```powershell

@@ -101,6 +101,11 @@ export type WithdrawalSoundEvent = {
   eventType: string
 }
 
+export type WithdrawalUpdate = WithdrawalSoundEvent & {
+  withdrawalPublicId: string
+  soundEvent: boolean
+}
+
 export type WithdrawalEvent = {
   id: number
   eventType: string
